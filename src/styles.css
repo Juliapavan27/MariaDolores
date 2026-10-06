@@ -561,3 +561,12 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .comece-lista li.feito .t { color: var(--muted); text-decoration: line-through; }
 .comece-lista .t { font-family: var(--font-display); font-size: 18px; }
 .comece-lista .btn.lnk { text-decoration: none; }
+
+/* Tela vazia: o que falta e como preencher */
+.vazio-tela { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; padding: 22px 26px; margin-bottom: 28px; border: 1px dashed var(--gold-soft); border-radius: var(--radius); background: var(--gold-wash); }
+.vazio-tela > div:first-child { flex: 1; min-width: 260px; }
+.vazio-tela .t { font-family: var(--font-display); font-size: 22px; color: var(--ink); }
+.vazio-tela p { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); }
+.vazio-tela .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.faixa.exemplos { background: var(--rose-wash); }
+#topo { display: block; scroll-margin-top: 120px; }

@@ -34,6 +34,9 @@ interface StoreValue {
   resetDemo: () => void
   clearAll: () => void
   iniciarBaseEquipe: () => void
+  /** Mostra a demonstração (só neste navegador) sem tocar na base da equipe. */
+  verExemplos: boolean
+  setVerExemplos: (v: boolean) => void
 }
 
 const Ctx = createContext<StoreValue | null>(null)
@@ -131,7 +134,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [presetPeriodo])
 
-  const naEquipe = modo === 'equipe'
+  const [verExemplos, setVerExemplos] = useState(false)
+  const naEquipe = modo === 'equipe' && !verExemplos
 
   /** Grava vários documentos na base da equipe, poucos de cada vez, mostrando o progresso. */
   const gravarLote = useCallback(async (ops: (() => Promise<void>)[]) => {
@@ -245,6 +249,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       db: naEquipe ? shared : local,
       modo,
+      verExemplos,
+      setVerExemplos: (v: boolean) => {
+        if (v && !local.clientes.length) setLocal(buildSeed())
+        setVerExemplos(v)
+      },
       podeEditar,
       progresso,
       aviso,
@@ -260,7 +269,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearAll,
       iniciarBaseEquipe,
     }),
-    [naEquipe, shared, local, modo, podeEditar, progresso, aviso, presetPeriodo, upsert, bulkUpsert, remove, setConfig, replaceAll, clearAll, iniciarBaseEquipe],
+    [naEquipe, verExemplos, shared, local, modo, podeEditar, progresso, aviso, presetPeriodo, upsert, bulkUpsert, remove, setConfig, replaceAll, clearAll, iniciarBaseEquipe],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

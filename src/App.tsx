@@ -1,5 +1,5 @@
 import { Component, useEffect, useMemo, useState, type ComponentType, type ErrorInfo, type ReactNode, type SVGProps } from 'react'
-import { HashRouter, NavLink, Route, Routes, useLocation } from './lib/router'
+import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from './lib/router'
 import { StoreProvider, useStore } from './data/store'
 import { PRESETS, type PresetPeriodo, today, addDays } from './lib/dates'
 import { date, MESES_LONGOS } from './lib/format'
@@ -129,10 +129,16 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
 
 /** Faixa sob o topo: modo da base, progresso de gravação e avisos. */
 function Faixa() {
-  const { db, modo, podeEditar, progresso, aviso, limparAviso, iniciarBaseEquipe, resetDemo } = useStore()
+  const { db, modo, podeEditar, progresso, aviso, limparAviso, iniciarBaseEquipe, resetDemo, verExemplos, setVerExemplos } = useStore()
   const vazio = modo !== 'equipe' && !db.clientes.length && !db.colaboradores.length
   return (
     <>
+      {verExemplos && (
+        <div className="faixa exemplos">
+          <span><b>Você está vendo exemplos.</b> São dados fictícios só neste navegador; nada aqui vai para a base da equipe.</span>
+          <button className="btn primary sm" onClick={() => setVerExemplos(false)}>Voltar à base da equipe</button>
+        </div>
+      )}
       {vazio && (
         <div className="faixa">
           <span><b>Não há dados salvos neste navegador.</b> Carregue a demonstração para explorar a plataforma, ou comece cadastrando a equipe.</span>
@@ -183,10 +189,51 @@ class Protecao extends Component<{ children: ReactNode; chave: string }, { erro:
   }
 }
 
+/** Quando a tela atual não tem dados, explica o que falta e leva direto para preencher. */
+const VAZIOS: Record<string, { colecoes: (keyof import('./data/types').Database)[]; titulo: string; texto: string; importar?: boolean }> = {
+  '/': { colecoes: ['clientes'], titulo: 'A base da equipe ainda está vazia', texto: 'Os números aparecem assim que a equipe e as revendas forem cadastradas. Siga o roteiro abaixo.' },
+  '/semana': { colecoes: ['clientes'], titulo: 'Ainda não há revendas para planejar a semana', texto: 'Importe a carteira de revendas do B2B (e depois os pedidos) para ver os grupos e a ordem de contatos.', importar: true },
+  '/simulador': { colecoes: ['pedidos'], titulo: 'O simulador parte do último mês de pedidos', texto: 'Importe os pedidos do B2B para o simulador usar os números reais.', importar: true },
+  '/equipe': { colecoes: ['colaboradores'], titulo: 'Cadastre a equipe primeiro', texto: 'Use o botão ＋ Novo colaborador no canto da tela, ou importe uma planilha com nome, cargo, e-mail e meta.', importar: true },
+  '/carteira': { colecoes: ['clientes'], titulo: 'Nenhuma revenda cadastrada', texto: 'Importe a planilha de clientes do B2B, ou use ＋ Nova revenda no canto da tela. A equipe precisa estar cadastrada antes.', importar: true },
+  '/faturamento': { colecoes: ['pedidos'], titulo: 'Nenhum pedido ainda', texto: 'Importe os pedidos do B2B, ou use ＋ Lançar pedido no canto da tela.', importar: true },
+  '/pos-venda': { colecoes: ['devolucoes', 'reclamacoes'], titulo: 'Nenhuma devolução ou reclamação registrada', texto: 'Importe as devoluções do B2B, ou registre pelo botão no canto da tela.', importar: true },
+  '/financeiro': { colecoes: ['titulos'], titulo: 'Nenhum título a receber', texto: 'Importe os títulos/boletos do B2B, ou gere ao lançar um pedido.', importar: true },
+  '/brindes': { colecoes: ['brindes'], titulo: 'Nenhum brinde cadastrado', texto: 'Use ＋ Novo brinde no canto da tela para cadastrar o estoque.' },
+  '/eventos': { colecoes: ['eventos'], titulo: 'Nenhum evento no calendário', texto: 'Use ＋ Novo evento, ou clique num dia do calendário.' },
+  '/leads': { colecoes: ['leads'], titulo: 'Nenhum lead ainda', texto: 'Importe a planilha do RD Station, ou use ＋ Novo lead.', importar: true },
+  '/trafego': { colecoes: ['campanhas'], titulo: 'Nenhuma campanha cadastrada', texto: 'Cadastre as campanhas da Meta e do Google e seus criativos pelos botões no canto da tela.' },
+  '/expansao': { colecoes: ['clientes'], titulo: 'O mapa de territórios usa a carteira de revendas', texto: 'Importe as revendas para ver as cidades ocupadas e disponíveis.', importar: true },
+}
+
+function TelaVazia() {
+  const { db, modo, setVerExemplos } = useStore()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const v = VAZIOS[pathname]
+  if (!v || v.colecoes.some((c) => (db[c] as unknown[]).length > 0)) return null
+  return (
+    <div className="vazio-tela">
+      <div>
+        <div className="t">{v.titulo}</div>
+        <p>{v.texto}</p>
+      </div>
+      <div className="acoes">
+        {v.importar && <button className="btn primary sm" onClick={() => navigate('/importar')}>Importar planilha</button>}
+        {modo === 'equipe' && <button className="btn sm" onClick={() => setVerExemplos(true)}>Ver exemplos</button>}
+      </div>
+    </div>
+  )
+}
+
 function Shell() {
   const [open, setOpen] = useState(false)
   const loc = useLocation()
-  useEffect(() => window.scrollTo(0, 0), [loc.pathname])
+  useEffect(() => {
+    // volta ao topo ao trocar de aba (também quando o visualizador controla a rolagem)
+    try { window.scrollTo(0, 0) } catch { /* ignora */ }
+    document.getElementById('topo')?.scrollIntoView({ block: 'start' })
+  }, [loc.pathname])
   return (
     <div className="app">
       <Sidebar open={open} onNavigate={() => setOpen(false)} />
@@ -195,6 +242,8 @@ function Shell() {
         <Topbar onMenu={() => setOpen(true)} />
         <Faixa />
         <main className="content">
+          <span id="topo" />
+          <TelaVazia />
           <Protecao chave={loc.pathname}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
