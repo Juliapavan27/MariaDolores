@@ -91,7 +91,7 @@ export default function Eventos() {
           <div className="legend mt">
             <span><i style={{ background: 'var(--gold)' }} /> Planejado / confirmado</span>
             <span><i style={{ background: 'var(--good)' }} /> Realizado</span>
-            <span><i style={{ background: 'var(--s2)' }} /> Visita ao showroom</span>
+            <span><i style={{ background: 'var(--line-strong)' }} /> Visita ao showroom</span>
             <span className="muted">Clique num dia vazio para criar um evento.</span>
           </div>
         </Card>

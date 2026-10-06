@@ -55,7 +55,7 @@ export default function Financeiro() {
       </div>
       <div className="grid g-1-2 mt">
         <Card title="Aging dos vencidos" sub="dias em atraso">
-          <HBars rows={Object.entries(d.ag).map(([k, v]) => ({ key: k, label: `${k} dias`, value: v }))} fmt={money} color={colors.s3} />
+          <HBars rows={Object.entries(d.ag).map(([k, v]) => ({ key: k, label: `${k} dias`, value: v }))} fmt={money} color={colors.s2} />
         </Card>
         <Card title="Prioridade de cobrança" sub="revendas com saldo vencido">
           <DataTable rows={d.devedores} pageSize={8} initialSort={{ key: 'vencido', dir: -1 }} columns={[

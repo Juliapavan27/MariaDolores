@@ -10,6 +10,7 @@ const hojeExtenso = () => {
   return `${DIAS_SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES_LONGOS[d.getMonth()].toLowerCase()}`
 }
 import * as I from './components/Icons'
+import { Logo } from './components/Logo'
 import Dashboard from './pages/Dashboard'
 import Equipe from './pages/Equipe'
 import Carteira from './pages/Carteira'
@@ -63,6 +64,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="brand">
+        <Logo className="brand-logo" />
         <div className="brand-mark">Maria Dolores</div>
         <div className="brand-sub">{db.config.nomeUnidade}</div>
       </div>
@@ -96,7 +98,7 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
     else document.documentElement.removeAttribute('data-theme')
     try { localStorage.setItem('md-theme', theme) } catch { /* ignora */ }
   }, [theme])
-  const isDark = theme ? theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDark = theme === 'dark'
   return (
     <header className="topbar">
       <button className="btn ghost menu-btn" onClick={onMenu} aria-label="Menu"><I.IcMenu /></button>

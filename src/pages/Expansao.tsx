@@ -12,7 +12,7 @@ import { exportCSV } from '../lib/csv'
 import { IcDownload, IcPlus } from '../components/Icons'
 
 const COR: Record<StatusTerritorio, string> = {
-  ocupada: 'var(--bad)', vai_liberar: 'var(--s3)', disponivel: 'var(--good)', prioritaria: 'var(--gold)', reservada: 'var(--info)', bloqueada: 'var(--muted)',
+  ocupada: 'var(--bad)', vai_liberar: 'var(--warn)', disponivel: 'var(--good)', prioritaria: 'var(--rose)', reservada: 'var(--info)', bloqueada: 'var(--muted)',
 }
 
 export default function Expansao() {

@@ -69,8 +69,8 @@ export default function PosVenda() {
         <Kpi label="Tempo médio de resolução" value={`${d.tempo.toFixed(1)} dias`} foot={`${d.recs.length} reclamações no período`} />
       </div>
       <div className="grid g-2 mt">
-        <Card title="Devoluções por motivo" sub={`valor · ${periodo.label}`}><HBars rows={d.porMotivo} fmt={money} color={colors.s3} /></Card>
-        <Card title="Reclamações por categoria" sub={periodo.label}><HBars rows={d.porCategoria} color={colors.s3} /></Card>
+        <Card title="Devoluções por motivo" sub={`valor · ${periodo.label}`}><HBars rows={d.porMotivo} fmt={money} color={colors.s2} /></Card>
+        <Card title="Reclamações por categoria" sub={periodo.label}><HBars rows={d.porCategoria} color={colors.s2} /></Card>
       </div>
       <div className="mt-lg">
         <Tabs value={aba} onChange={setAba} options={[{ value: 'devolucoes', label: `Devoluções (${d.devs.length})` }, { value: 'reclamacoes', label: `Reclamações (${d.recs.length})` }]} />

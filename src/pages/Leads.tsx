@@ -211,7 +211,7 @@ export default function Leads() {
                 { key: 'cac', label: 'CAC', num: true, value: (r) => r.cac, render: (r) => r.custo ? (r.ganhos ? money(r.cac) : 'sem venda') : '—' },
               ]} />
             </Card>
-            <Card title="Motivos de perda" sub={periodo.label}><HBars rows={analise.perdas} color={colors.s3} /></Card>
+            <Card title="Motivos de perda" sub={periodo.label}><HBars rows={analise.perdas} color={colors.s2} /></Card>
           </div>
         </>
       )}

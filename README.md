@@ -53,4 +53,4 @@ O seletor de período no topo (mês, mês anterior, trimestre, semestre, ano, 12
 
 ## Stack
 
-React 18, TypeScript, Vite, React Router e Recharts. A identidade visual usa Cormorant Garamond (títulos) e Jost (interface), em marfim, tinta e ouro, com linhas finas e modo escuro.
+React 18, TypeScript, Vite, React Router e Recharts. A identidade visual usa Cormorant Garamond (títulos) e Jost (interface). A paleta vem da identidade da marca: fundo gesso claro, monograma MD em ouro cobre (#C58941 → #9D6937) e rosé como cor de apoio. O modo noturno é opcional e usa tons de cacau, sem preto.
