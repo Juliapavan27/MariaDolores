@@ -71,7 +71,9 @@ export default function Dashboard() {
           <div className="eyebrow">{db.config.nomeUnidade} · {db.config.colecaoAtual}</div>
           <h1>{saudacao()}, <em>equipe.</em></h1>
           <p>
-            {faltam > 0
+            {!d.at.base
+              ? <>Base vazia por enquanto. Siga o roteiro abaixo para cadastrar a equipe e trazer as revendas.</>
+              : faltam > 0
               ? <>Faltam <b>{faltam} revendas</b> comprando para chegar a {pct(metaAt)} de ativação, e <b>{money(Math.max(0, d.meta - d.fat))}</b> para a meta de faturamento — {periodo.label.toLowerCase()}.</>
               : <>Meta de ativação atingida em {periodo.label.toLowerCase()}. Faltam <b>{money(Math.max(0, d.meta - d.fat))}</b> para a meta de faturamento.</>}
           </p>
@@ -81,6 +83,8 @@ export default function Dashboard() {
           <div className="cap">da meta do período</div>
         </div>
       </header>
+
+      {(!db.colaboradores.length || !db.clientes.length) && <ComeceAqui />}
 
       <div className="kpi-strip k5">
         <Kpi label="Faturamento" value={money(d.fat)} foot={<>meta {money(d.meta)}</>}>
@@ -198,5 +202,30 @@ export function MiniStat({ label, value }: { label: string; value: ReactNode }) 
       <div className="l">{label}</div>
       <div className="v">{value}</div>
     </div>
+  )
+}
+
+/** Roteiro para quem está começando com a base vazia. */
+function ComeceAqui() {
+  const { db, modo } = useStore()
+  const passos = [
+    { feito: modo === 'equipe', titulo: 'Iniciar a base da equipe', texto: 'No aviso dourado do topo. A partir daí tudo fica salvo para todos.', to: '/', acao: '' },
+    { feito: false, titulo: 'Conferir as metas gerais', texto: 'Meta mensal do showroom, ativação de 70%, verba de mídia.', to: '/config', acao: 'Abrir configurações' },
+    { feito: db.colaboradores.length > 0, titulo: 'Cadastrar a equipe', texto: 'Vendedoras, representantes e analista, com a meta de cada uma.', to: '/equipe', acao: 'Abrir equipe' },
+    { feito: db.clientes.length > 0, titulo: 'Trazer as revendas', texto: 'Importe a planilha do B2B ou cadastre uma a uma.', to: '/importar', acao: 'Importar dados' },
+    { feito: db.pedidos.length > 0, titulo: 'Trazer pedidos e títulos', texto: 'Com eles aparecem faturamento, ativação e débitos.', to: '/importar', acao: 'Importar dados' },
+  ]
+  return (
+    <Card title="Comece por aqui" sub="a base está vazia" className="comece">
+      <ol className="comece-lista">
+        {passos.map((p) => (
+          <li key={p.titulo} className={p.feito ? 'feito' : ''}>
+            <span className="marca">{p.feito ? '✓' : ''}</span>
+            <div><div className="t">{p.titulo}</div><div className="small muted">{p.texto}</div></div>
+            {p.acao && !p.feito && <Link to={p.to} className="btn sm">{p.acao}</Link>}
+          </li>
+        ))}
+      </ol>
+    </Card>
   )
 }

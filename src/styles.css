@@ -111,6 +111,12 @@ body {
 button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
 a { color: var(--ink); text-decoration-color: var(--gold-soft); text-underline-offset: 3px; }
 a:hover { color: var(--gold); }
+/* Navegação interna: botões com aparência de link (o visualizador do claude.ai intercepta links) */
+.lnk { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--ink); cursor: pointer; text-align: inherit; text-decoration: underline; text-decoration-color: var(--gold-soft); text-underline-offset: 3px; }
+.lnk:hover { color: var(--gold); }
+.lnk:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 2px; border-radius: 2px; }
+.nav-link.lnk, .todo .lnk, .card-head .right .lnk { text-decoration: none; }
+.nav-link.lnk { width: 100%; text-align: left; }
 ::selection { background: var(--rose-wash); }
 b, .strong { font-weight: 500; }
 body { background-image: radial-gradient(1200px 600px at 100% -10%, rgba(215, 154, 87, 0.07), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(216, 170, 163, 0.10), transparent 60%); background-attachment: fixed; }
@@ -181,8 +187,8 @@ body { background-image: radial-gradient(1200px 600px at 100% -10%, rgba(215, 15
 .card-head h3 { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 500; letter-spacing: -0.1px; line-height: 1.15; }
 .card-head .sub { color: var(--muted); font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; }
 .card-head .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
-.card-head .right a, .link-more { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; text-decoration: none; color: var(--gold); }
-.card-head .right a:hover { color: var(--ink); }
+.card-head .right .lnk, .link-more { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; text-decoration: none; color: var(--gold); }
+.card-head .right .lnk:hover { color: var(--ink); }
 
 .kpi { display: flex; flex-direction: column; gap: 10px; }
 .kpi-label { font-size: 10px; color: var(--muted); font-weight: 500; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
@@ -306,10 +312,10 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 /* Lista de pendências (Atenção hoje) */
 .todo { display: flex; flex-direction: column; }
-.todo a { display: grid; grid-template-columns: 8px 1fr auto; gap: 14px; align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink-2); font-size: 13px; line-height: 1.45; transition: color 0.2s var(--ease); }
-.todo a:last-child { border-bottom: none; }
-.todo a:hover { color: var(--ink); }
-.todo a:hover .arrow { transform: translateX(3px); color: var(--gold); }
+.todo .lnk { width: 100%; text-align: left; display: grid; grid-template-columns: 8px 1fr auto; gap: 14px; align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink-2); font-size: 13px; line-height: 1.45; transition: color 0.2s var(--ease); }
+.todo .lnk:last-child { border-bottom: none; }
+.todo .lnk:hover { color: var(--ink); }
+.todo .lnk:hover .arrow { transform: translateX(3px); color: var(--gold); }
 .todo .dot { width: 6px; height: 6px; border-radius: 50%; transform: translateY(-1px); }
 .todo .num { font-family: var(--font-display); font-size: 19px; color: var(--ink); font-weight: 500; margin-right: 4px; }
 .todo .arrow { color: var(--muted); transition: transform 0.2s var(--ease); }
@@ -544,3 +550,14 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .matriz .eixo-y { display: none; }
   .eixo-x { grid-column: 1 / -1; }
 }
+
+/* Comece por aqui */
+.comece { margin-bottom: 20px; border-color: var(--gold-soft); }
+.comece-lista { list-style: none; margin: 0; padding: 0; counter-reset: c; }
+.comece-lista li { display: grid; grid-template-columns: 30px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.comece-lista li:last-child { border-bottom: none; }
+.comece-lista .marca { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--gold-soft); display: grid; place-items: center; font-size: 12px; color: #fff; }
+.comece-lista li.feito .marca { background: var(--gold-grad); border-color: transparent; }
+.comece-lista li.feito .t { color: var(--muted); text-decoration: line-through; }
+.comece-lista .t { font-family: var(--font-display); font-size: 18px; }
+.comece-lista .btn.lnk { text-decoration: none; }

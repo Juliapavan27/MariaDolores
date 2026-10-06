@@ -1,10 +1,10 @@
-// Roteador mínimo por hash (#/carteira), no lugar do React Router.
-// Funciona também em quadros isolados (sem endereço próprio), onde o React Router
-// quebra ao montar URLs. Se o hash não puder ser lido ou gravado, a navegação
-// continua só na memória.
+// Navegação interna da plataforma, feita só com estado e botões.
+// Não usa links (<a href>) nem altera o endereço da página: o visualizador do
+// claude.ai intercepta cliques em links e trata endereços com "#/…" de forma
+// própria, o que deixava as telas sem conteúdo.
 import {
-  Children, createContext, isValidElement, useCallback, useContext, useEffect, useMemo, useState,
-  type AnchorHTMLAttributes, type MouseEvent, type ReactElement, type ReactNode,
+  Children, createContext, isValidElement, useCallback, useContext, useMemo, useState,
+  type ButtonHTMLAttributes, type ReactElement, type ReactNode,
 } from 'react'
 
 interface RouterValue {
@@ -14,49 +14,29 @@ interface RouterValue {
 
 const Ctx = createContext<RouterValue>({ pathname: '/', navigate: () => {} })
 
-function lerHash() {
-  try {
-    const h = window.location.hash.replace(/^#/, '')
-    return h.startsWith('/') ? h : '/'
-  } catch {
-    return '/'
-  }
-}
-
 export function HashRouter({ children }: { children: ReactNode }) {
-  const [pathname, setPathname] = useState(lerHash)
-  useEffect(() => {
-    const onHash = () => setPathname(lerHash())
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
-  }, [])
-  const navigate = useCallback((to: string) => {
-    setPathname(to)
-    try {
-      if (window.location.hash !== '#' + to) window.location.hash = to
-    } catch {
-      /* ambiente sem hash: segue só na memória */
-    }
-  }, [])
+  const [pathname, setPathname] = useState('/')
+  const navigate = useCallback((to: string) => setPathname(to), [])
   const value = useMemo(() => ({ pathname, navigate }), [pathname, navigate])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
 export const useLocation = () => ({ pathname: useContext(Ctx).pathname })
+export const useNavigate = () => useContext(Ctx).navigate
 
-type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'className'> & { to: string }
+type LinkProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'type'> & { to: string }
 
-export function Link({ to, onClick, ...rest }: LinkProps & { className?: string }) {
+/** Botão com aparência de link que troca de tela. */
+export function Link({ to, onClick, className, ...rest }: LinkProps & { className?: string }) {
   const { navigate } = useContext(Ctx)
   return (
-    <a
+    <button
       {...rest}
-      href={'#' + to}
-      onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+      type="button"
+      className={`lnk ${className || ''}`}
+      onClick={(e) => {
         onClick?.(e)
-        if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
-        e.preventDefault()
-        navigate(to)
+        if (!e.defaultPrevented) navigate(to)
       }}
     />
   )
