@@ -45,6 +45,17 @@ O seletor de período no topo (mês, mês anterior, trimestre, semestre, ano, 12
 
 ## Dados
 
+### Publicada no claude.ai (base da equipe)
+
+No link do claude.ai, a plataforma usa a base compartilhada do próprio link:
+
+- Enquanto a base não é iniciada, ela mostra os dados de demonstração, com um aviso no topo.
+- Em **Iniciar base da equipe**, a base começa vazia e todos com acesso de Colaborador ou Editor passam a ler e gravar os mesmos dados, ao vivo. Quem tem acesso de Leitor só visualiza.
+- Comece cadastrando a equipe (Equipe & metas) e depois as revendas. Para levar dados de um backup, use Configurações › Restaurar backup.
+- Exportações CSV e backup pedem confirmação de quem baixa.
+
+### Rodando localmente
+
 - Na primeira abertura, a plataforma carrega **dados de demonstração** para a equipe explorar. Em Configurações › "Zerar base", você começa com os dados reais.
 - Os dados ficam salvos no navegador (localStorage). Faça backup em Configurações e use o arquivo para levar os dados para outro computador.
 - Todas as tabelas exportam para CSV (separador `;`, abre direto no Excel).

@@ -1,14 +1,29 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Colecao, Configuracoes, Database } from './types'
 import { buildSeed, emptyDatabase } from './seed'
 import { periodo as buildPeriodo, type Periodo, type PresetPeriodo } from '../lib/dates'
+import { useCapability, type DbError, type SharedDB, type UserCap } from '../lib/claude'
 
 const STORAGE_KEY = 'md-gestao-showroom-v1'
+const CONFIG_DOC = 'config/main'
+const COLECOES = Object.keys(emptyDatabase()).filter((k) => k !== 'config') as Colecao[]
 
 type WithId = { id: string }
 
+/**
+ * - `local`: dados salvos só neste navegador (fora do claude.ai ou sem base compartilhada).
+ * - `vitrine`: há base compartilhada, mas a equipe ainda não a iniciou — mostra a demonstração.
+ * - `equipe`: todos leem e gravam a mesma base, com atualização ao vivo.
+ */
+export type Modo = 'local' | 'vitrine' | 'equipe'
+
 interface StoreValue {
   db: Database
+  modo: Modo
+  podeEditar: boolean | null
+  progresso: { feitos: number; total: number } | null
+  aviso: string
+  limparAviso: () => void
   periodo: Periodo
   setPeriodo: (p: PresetPeriodo) => void
   upsert: <K extends Colecao>(col: K, item: Database[K][number]) => void
@@ -18,11 +33,12 @@ interface StoreValue {
   replaceAll: (db: Database) => void
   resetDemo: () => void
   clearAll: () => void
+  iniciarBaseEquipe: () => void
 }
 
 const Ctx = createContext<StoreValue | null>(null)
 
-function load(): Database {
+function loadLocal(): Database {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
@@ -38,8 +54,27 @@ function load(): Database {
 
 export const newId = (prefix = 'id') => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
 
+/** JSON puro: remove campos `undefined` antes de gravar. */
+const limpo = (x: unknown) => JSON.parse(JSON.stringify(x)) as Record<string, unknown>
+
+function mensagemErro(e: unknown) {
+  const code = (e as DbError)?.code
+  if (code === 'invalid_argument') return 'Seu acesso a esta página é só de leitura: a alteração não foi salva na base da equipe.'
+  if (code === 'quota_exceeded') return 'A base da equipe atingiu o limite de armazenamento. Exclua registros antigos para continuar.'
+  if (code === 'resource_exhausted') return 'Muitas alterações seguidas. Aguarde alguns segundos e tente de novo.'
+  return 'Não foi possível salvar na base da equipe agora. Verifique a conexão e tente de novo.'
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [db, setDb] = useState<Database>(load)
+  const [local, setLocal] = useState<Database>(loadLocal)
+  const [shared, setShared] = useState<Database>(emptyDatabase)
+  const [modo, setModo] = useState<Modo>('local')
+  const [podeEditar, setPodeEditar] = useState<boolean | null>(null)
+  const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null)
+  const [aviso, setAviso] = useState('')
+  const sharedRef = useRef<SharedDB | null>(null)
+  const sharedState = useRef(shared)
+  sharedState.current = shared
   const [presetPeriodo, setPresetPeriodo] = useState<PresetPeriodo>(() => {
     try {
       return (localStorage.getItem(STORAGE_KEY + ':periodo') as PresetPeriodo) || 'mes'
@@ -48,13 +83,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   })
 
+  // Conecta à base compartilhada quando a página roda publicada no claude.ai
+  useEffect(() => {
+    let vivo = true
+    const unsubs: (() => void)[] = []
+    ;(async () => {
+      const [sdb, user] = await Promise.all([useCapability<SharedDB>('db'), useCapability<UserCap>('user')])
+      if (!vivo || !sdb) return
+      sharedRef.current = sdb
+      try {
+        setPodeEditar(user ? user.can('data.write') : null)
+      } catch {
+        setPodeEditar(null)
+      }
+      const falhou = (e: DbError) => e.code !== 'revoked' && setAviso('A conexão com a base da equipe caiu. Recarregue a página.')
+      unsubs.push(
+        sdb.doc(CONFIG_DOC).onSnapshot((s) => {
+          if (s.exists) {
+            setShared((p) => ({ ...p, config: { ...emptyDatabase().config, ...(s.data() as Partial<Configuracoes>) } }))
+            setModo('equipe')
+          } else setModo('vitrine')
+        }, falhou),
+      )
+      COLECOES.forEach((col) => {
+        unsubs.push(
+          sdb.collection(col).onSnapshot((snap) => {
+            setShared((p) => ({ ...p, [col]: snap.docs.map((d) => ({ ...d.data(), id: d.id })) }))
+          }, falhou),
+        )
+      })
+    })()
+    return () => {
+      vivo = false
+      unsubs.forEach((u) => u())
+    }
+  }, [])
+
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(local))
     } catch {
       /* ignora: modo privado ou cota excedida */
     }
-  }, [db])
+  }, [local])
 
   useEffect(() => {
     try {
@@ -64,44 +135,126 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [presetPeriodo])
 
+  const naEquipe = modo === 'equipe'
+
+  /** Grava vários documentos na base da equipe, poucos de cada vez, mostrando o progresso. */
+  const gravarLote = useCallback(async (ops: (() => Promise<void>)[]) => {
+    if (!ops.length) return
+    setProgresso({ feitos: 0, total: ops.length })
+    let i = 0
+    let feitos = 0
+    let erro: unknown = null
+    const worker = async () => {
+      while (i < ops.length && !erro) {
+        const op = ops[i++]
+        try {
+          await op()
+        } catch (e) {
+          erro = e
+        }
+        feitos++
+        if (feitos % 10 === 0 || feitos === ops.length) setProgresso({ feitos, total: ops.length })
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()])
+    setProgresso(null)
+    if (erro) setAviso(mensagemErro(erro))
+  }, [])
+
   const upsert = useCallback(<K extends Colecao>(col: K, item: Database[K][number]) => {
-    setDb((prev) => {
+    const it = item as unknown as WithId
+    if (naEquipe && sharedRef.current) {
+      sharedRef.current.collection(col).doc(it.id).set(limpo(it)).catch((e) => setAviso(mensagemErro(e)))
+      return
+    }
+    setLocal((prev) => {
       const list = prev[col] as unknown as WithId[]
-      const it = item as unknown as WithId
       const exists = list.some((x) => x.id === it.id)
       const next = exists ? list.map((x) => (x.id === it.id ? it : x)) : [it, ...list]
       return { ...prev, [col]: next }
     })
-  }, [])
+  }, [naEquipe])
 
   const bulkUpsert = useCallback(<K extends Colecao>(col: K, items: Database[K]) => {
-    setDb((prev) => {
+    const sdb = sharedRef.current
+    if (naEquipe && sdb) {
+      void gravarLote((items as unknown as WithId[]).map((x) => () => sdb.collection(col).doc(x.id).set(limpo(x))))
+      return
+    }
+    setLocal((prev) => {
       const map = new Map((prev[col] as unknown as WithId[]).map((x) => [x.id, x]))
       ;(items as unknown as WithId[]).forEach((x) => map.set(x.id, x))
       return { ...prev, [col]: Array.from(map.values()) }
     })
-  }, [])
+  }, [naEquipe, gravarLote])
 
   const remove = useCallback((col: Colecao, id: string) => {
-    setDb((prev) => ({ ...prev, [col]: (prev[col] as unknown as WithId[]).filter((x) => x.id !== id) }))
-  }, [])
+    if (naEquipe && sharedRef.current) {
+      sharedRef.current.collection(col).doc(id).delete().catch((e) => setAviso(mensagemErro(e)))
+      return
+    }
+    setLocal((prev) => ({ ...prev, [col]: (prev[col] as unknown as WithId[]).filter((x) => x.id !== id) }))
+  }, [naEquipe])
 
-  const setConfig = useCallback((c: Partial<Configuracoes>) => setDb((prev) => ({ ...prev, config: { ...prev.config, ...c } })), [])
+  const setConfig = useCallback((c: Partial<Configuracoes>) => {
+    if (naEquipe && sharedRef.current) {
+      sharedRef.current.doc(CONFIG_DOC).set(limpo({ ...sharedState.current.config, ...c })).catch((e) => setAviso(mensagemErro(e)))
+      return
+    }
+    setLocal((prev) => ({ ...prev, config: { ...prev.config, ...c } }))
+  }, [naEquipe])
+
+  /** Substitui tudo (restaurar backup). Na base da equipe, grava registro a registro. */
+  const replaceAll = useCallback((d: Database) => {
+    const full = { ...emptyDatabase(), ...d }
+    const sdb = sharedRef.current
+    if (naEquipe && sdb) {
+      const ops: (() => Promise<void>)[] = [() => sdb.doc(CONFIG_DOC).set(limpo(full.config))]
+      COLECOES.forEach((col) => (full[col] as unknown as WithId[]).forEach((x) => ops.push(() => sdb.collection(col).doc(x.id).set(limpo(x)))))
+      void gravarLote(ops)
+      return
+    }
+    setLocal(full)
+  }, [naEquipe, gravarLote])
+
+  const clearAll = useCallback(() => {
+    const sdb = sharedRef.current
+    if (naEquipe && sdb) {
+      const atual = sharedState.current
+      const ops: (() => Promise<void>)[] = []
+      COLECOES.forEach((col) => (atual[col] as unknown as WithId[]).forEach((x) => ops.push(() => sdb.collection(col).doc(x.id).delete())))
+      void gravarLote(ops)
+      return
+    }
+    setLocal(emptyDatabase())
+  }, [naEquipe, gravarLote])
+
+  const iniciarBaseEquipe = useCallback(() => {
+    const sdb = sharedRef.current
+    if (!sdb) return
+    sdb.doc(CONFIG_DOC).set(limpo(emptyDatabase().config)).catch((e) => setAviso(mensagemErro(e)))
+  }, [])
 
   const value = useMemo<StoreValue>(
     () => ({
-      db,
+      db: naEquipe ? shared : local,
+      modo,
+      podeEditar,
+      progresso,
+      aviso,
+      limparAviso: () => setAviso(''),
       periodo: buildPeriodo(presetPeriodo),
       setPeriodo: setPresetPeriodo,
       upsert,
       bulkUpsert,
       remove,
       setConfig,
-      replaceAll: (d) => setDb({ ...emptyDatabase(), ...d }),
-      resetDemo: () => setDb(buildSeed()),
-      clearAll: () => setDb(emptyDatabase()),
+      replaceAll,
+      resetDemo: () => setLocal(buildSeed()),
+      clearAll,
+      iniciarBaseEquipe,
     }),
-    [db, presetPeriodo, upsert, bulkUpsert, remove, setConfig],
+    [naEquipe, shared, local, modo, podeEditar, progresso, aviso, presetPeriodo, upsert, bulkUpsert, remove, setConfig, replaceAll, clearAll, iniciarBaseEquipe],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

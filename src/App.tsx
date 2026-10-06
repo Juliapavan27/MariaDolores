@@ -11,6 +11,7 @@ const hojeExtenso = () => {
 }
 import * as I from './components/Icons'
 import { Logo } from './components/Logo'
+import { ConfirmButton } from './components/ui'
 import Dashboard from './pages/Dashboard'
 import Equipe from './pages/Equipe'
 import Carteira from './pages/Carteira'
@@ -89,7 +90,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
 }
 
 function Topbar({ onMenu }: { onMenu: () => void }) {
-  const { periodo, setPeriodo } = useStore()
+  const { periodo, setPeriodo, modo } = useStore()
   const [theme, setTheme] = useState<string>(() => {
     try { return localStorage.getItem('md-theme') || '' } catch { return '' }
   })
@@ -105,6 +106,9 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       <span className="today">{hojeExtenso()}</span>
       <span className="range">{date(periodo.inicio)} — {date(periodo.fim)}</span>
       <div className="spacer" />
+      <span className={`modo-base ${modo}`} title={modo === 'equipe' ? 'Dados compartilhados com a equipe, atualizados ao vivo' : 'Dados salvos só neste navegador'}>
+        <i />{modo === 'equipe' ? 'Base da equipe' : modo === 'vitrine' ? 'Demonstração' : 'Neste navegador'}
+      </span>
       <select className="input" style={{ width: 'auto' }} value={periodo.chave} onChange={(e) => setPeriodo(e.target.value as PresetPeriodo)} aria-label="Período">
         {PRESETS.map((p) => <option key={p.chave} value={p.chave}>{p.label}</option>)}
       </select>
@@ -115,6 +119,30 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   )
 }
 
+/** Faixa sob o topo: modo da base, progresso de gravação e avisos. */
+function Faixa() {
+  const { modo, podeEditar, progresso, aviso, limparAviso, iniciarBaseEquipe } = useStore()
+  return (
+    <>
+      {modo === 'vitrine' && (
+        <div className="faixa">
+          <span><b>Você está vendo dados de demonstração.</b> A base da equipe ainda não foi iniciada: ao iniciá-la, todos que têm acesso a esta página passam a ver e editar os mesmos dados, ao vivo.</span>
+          {podeEditar !== false && <ConfirmButton className="btn primary sm" confirmLabel="Iniciar base vazia?" onConfirm={iniciarBaseEquipe}>Iniciar base da equipe</ConfirmButton>}
+        </div>
+      )}
+      {modo === 'equipe' && podeEditar === false && (
+        <div className="faixa"><span>Base da equipe · seu acesso é <b>somente leitura</b>. Peça à responsável para mudar seu acesso para Colaborador ou Editor.</span></div>
+      )}
+      {progresso && (
+        <div className="faixa"><span>Gravando na base da equipe… {progresso.feitos} de {progresso.total}</span><div className="meter" style={{ flex: 1, maxWidth: 240 }}><span style={{ width: `${(progresso.feitos / progresso.total) * 100}%` }} /></div></div>
+      )}
+      {aviso && (
+        <div className="faixa erro" role="alert"><span>{aviso}</span><button className="btn sm ghost" onClick={limparAviso}>Fechar</button></div>
+      )}
+    </>
+  )
+}
+
 function Shell() {
   const [open, setOpen] = useState(false)
   const loc = useLocation()
@@ -122,9 +150,10 @@ function Shell() {
   return (
     <div className="app">
       <Sidebar open={open} onNavigate={() => setOpen(false)} />
-      {open && <div className="overlay" style={{ zIndex: 30, background: 'rgba(0,0,0,.3)' }} onClick={() => setOpen(false)} />}
+      {open && <div className="overlay" style={{ zIndex: 30 }} onClick={() => setOpen(false)} />}
       <div className="main">
         <Topbar onMenu={() => setOpen(true)} />
+        <Faixa />
         <main className="content">
           <Routes>
             <Route path="/" element={<Dashboard />} />

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../data/store'
 import type { Configuracoes as Cfg, Database } from '../data/types'
 import { Card, ConfirmButton, PageHead, StatRow } from '../components/ui'
@@ -19,10 +19,13 @@ const CAMPOS: { k: keyof Cfg; label: string; type: 'text' | 'number'; step?: str
 ]
 
 export default function Configuracoes() {
-  const { db, setConfig, replaceAll, resetDemo, clearAll } = useStore()
+  const { db, modo, setConfig, replaceAll, resetDemo, clearAll } = useStore()
   const [form, setForm] = useState<Cfg>(db.config)
   const [msg, setMsg] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // a configuração da base da equipe chega depois do primeiro desenho
+  useEffect(() => setForm(db.config), [db.config])
 
   const salvar = () => { setConfig(form); setMsg('Configurações salvas.') }
   const importar = async (f: File) => {
@@ -64,7 +67,11 @@ export default function Configuracoes() {
 
         <div className="grid" style={{ alignContent: 'start' }}>
           <Card title="Dados e backup">
-            <p className="small" style={{ marginTop: 0 }}>Os dados ficam salvos neste navegador. Faça backup periódico e use o arquivo para levar os dados para outro computador.</p>
+            <p className="small" style={{ marginTop: 0 }}>
+              {modo === 'equipe'
+                ? 'Os dados ficam na base da equipe: todos que têm acesso a esta página veem as mesmas informações, atualizadas ao vivo. Restaurar um backup grava os registros do arquivo nesta base.'
+                : 'Os dados ficam salvos neste navegador. Faça backup periódico e use o arquivo para levar os dados para outro computador ou para a base da equipe.'}
+            </p>
             <StatRow label="Revendas" value={int(db.clientes.length)} />
             <StatRow label="Pedidos" value={int(db.pedidos.length)} />
             <StatRow label="Leads" value={int(db.leads.length)} />
@@ -75,7 +82,7 @@ export default function Configuracoes() {
               <button className="btn" onClick={() => fileRef.current?.click()}><IcUpload /> Restaurar backup</button>
             </div>
             <div className="toolbar">
-              <ConfirmButton confirmLabel="Substituir os dados atuais?" onConfirm={() => { resetDemo(); setMsg('Dados de demonstração recarregados.') }}>Recarregar demonstração</ConfirmButton>
+              {modo !== 'equipe' && <ConfirmButton confirmLabel="Substituir os dados atuais?" onConfirm={() => { resetDemo(); setMsg('Dados de demonstração recarregados.') }}>Recarregar demonstração</ConfirmButton>}
               <ConfirmButton className="btn danger" confirmLabel="Apagar tudo? Clique de novo" onConfirm={() => { clearAll(); setMsg('Base zerada. Comece cadastrando a equipe e as revendas.') }}>Zerar base (começar do zero)</ConfirmButton>
             </div>
           </Card>
@@ -83,7 +90,7 @@ export default function Configuracoes() {
             <StatRow label="RD Station" value="Importação de leads via CSV (Leads › Importar)" />
             <StatRow label="Meta Ads / Google Ads" value="Atualização dos criativos (Tráfego › Criativo)" />
             <StatRow label="Planilhas / ERP" value="Exportação CSV em todas as abas" />
-            <p className="small muted" style={{ marginBottom: 0 }}>Próximo passo sugerido: conectar a um banco de dados na nuvem (ex.: Supabase) para uso simultâneo pela equipe e sincronização automática com RD Station e plataformas de anúncio via API.</p>
+            <p className="small muted" style={{ marginBottom: 0 }}>Próximo passo sugerido: sincronização automática com RD Station e plataformas de anúncio via API.</p>
           </Card>
         </div>
       </div>

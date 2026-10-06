@@ -16,7 +16,7 @@ export function clienteFields(db: ReturnType<typeof useStore>['db']): Field[] {
     { name: 'cidade', label: 'Cidade (ou bairro na capital)', required: true },
     { name: 'uf', label: 'UF', type: 'select', options: UFS.map((u) => ({ value: u, label: u })), required: true },
     { name: 'regiao', label: 'Região', type: 'select', options: REGIOES.map((r) => ({ value: r, label: r })), required: true },
-    { name: 'responsavelId', label: 'Atendida por', type: 'select', required: true, options: db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => ({ value: c.id, label: c.nome })) },
+    { name: 'responsavelId', label: 'Atendida por', type: 'select', required: true, options: db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => ({ value: c.id, label: c.nome })), help: db.colaboradores.some((c) => c.cargo !== 'analista') ? undefined : 'Cadastre primeiro as vendedoras e representantes em Equipe & metas.' },
     { name: 'telefone', label: 'Telefone / WhatsApp', type: 'tel' },
     { name: 'email', label: 'E-mail', type: 'email' },
     { name: 'instagram', label: 'Instagram' },

@@ -1,3 +1,5 @@
+import { useCapability, type DownloadsCap } from './claude'
+
 export function toCSV(rows: Record<string, unknown>[]): string {
   if (!rows.length) return ''
   const cols = Array.from(new Set(rows.flatMap((r) => Object.keys(r))))
@@ -9,8 +11,18 @@ export function toCSV(rows: Record<string, unknown>[]): string {
   return [cols.join(';'), ...rows.map((r) => cols.map((c) => esc(r[c])).join(';'))].join('\n')
 }
 
-export function download(filename: string, content: string, type = 'text/csv;charset=utf-8') {
+export async function download(filename: string, content: string, type = 'text/csv;charset=utf-8') {
   const blob = new Blob(['﻿' + content], { type })
+  // No claude.ai o download passa pelo recurso da plataforma (pede confirmação a quem baixa).
+  const downloads = await useCapability<DownloadsCap>('downloads')
+  if (downloads) {
+    try {
+      await downloads.save({ filename, data: blob })
+    } catch {
+      /* quem baixa recusou ou o recurso não está disponível: nada a fazer */
+    }
+    return
+  }
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

@@ -467,3 +467,13 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .funnel-row { grid-template-columns: 96px 1fr 80px; gap: 10px; }
   .modal-head, .modal-body, .modal-foot { padding-left: 20px; padding-right: 20px; }
 }
+
+/* Faixa de status sob o topo */
+.faixa { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 48px; background: var(--gold-wash); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+.faixa > span { flex: 1; min-width: 240px; }
+.faixa b { color: var(--ink); }
+.faixa.erro { background: var(--bad-wash); color: var(--bad); }
+.modo-base { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); }
+.modo-base i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.modo-base.equipe i { background: var(--good); box-shadow: 0 0 0 3px var(--good-wash); }
+@media (max-width: 860px) { .faixa { padding-left: 16px; padding-right: 16px; } }
