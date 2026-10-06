@@ -7,7 +7,7 @@ import { metricasCriativo } from '../lib/metrics'
 import { date, money, money2, pct, safeDiv, int, short } from '../lib/format'
 import { FORMATO, STATUS_CAMPANHA } from '../data/labels'
 import { exportCSV } from '../lib/csv'
-import { IcDownload, IcPlus, IcSparkle } from '../components/Icons'
+import { IcDownload, IcPlus } from '../components/Icons'
 
 const PLAT: Record<Plataforma, string> = { meta: 'Meta Ads', google: 'Google Ads' }
 
@@ -64,12 +64,12 @@ export default function Trafego() {
 
       <div className="grid g-2">
         {d.porPlat.map((x) => (
-          <Card key={x.p} title={PLAT[x.p]} sub="campanhas ativas · acumulado" right={<Badge tone={x.p === 'meta' ? 'gold' : 'info'} plain>{pct(x.p === 'meta' ? db.config.divisaoMeta : 1 - db.config.divisaoMeta)} da verba</Badge>}>
-            <div className="grid g-4" style={{ gap: 10 }}>
-              <div><div className="small muted">Investido</div><b style={{ fontSize: 18 }}>{money(x.investido)}</b></div>
-              <div><div className="small muted">Leads</div><b style={{ fontSize: 18 }}>{int(x.leads)}</b></div>
-              <div><div className="small muted">CPL</div><b style={{ fontSize: 18 }}>{money2(safeDiv(x.investido, x.leads))}</b></div>
-              <div><div className="small muted">Revendas</div><b style={{ fontSize: 18 }}>{int(x.conversoes)}</b></div>
+          <Card key={x.p} title={PLAT[x.p]} sub="campanhas ativas · acumulado" right={<Badge plain>{pct(x.p === 'meta' ? db.config.divisaoMeta : 1 - db.config.divisaoMeta)} da verba</Badge>}>
+            <div className="grid g-4" style={{ gap: 16 }}>
+              <div className="mini-stat"><div className="l">Investido</div><div className="v" style={{ fontSize: 24 }}>{money(x.investido)}</div></div>
+              <div className="mini-stat"><div className="l">Leads</div><div className="v" style={{ fontSize: 24 }}>{int(x.leads)}</div></div>
+              <div className="mini-stat"><div className="l">CPL</div><div className="v" style={{ fontSize: 24 }}>{money2(safeDiv(x.investido, x.leads))}</div></div>
+              <div className="mini-stat"><div className="l">Revendas</div><div className="v" style={{ fontSize: 24 }}>{int(x.conversoes)}</div></div>
             </div>
             <div className="small" style={{ display: 'flex', justifyContent: 'space-between', margin: '12px 0 4px' }}><span>Orçamento mensal ativo <b>{money(x.orc)}</b></span><span className="muted">planejado {money(x.planejado)}</span></div>
             <Meter value={safeDiv(x.orc, x.planejado)} target={1} tone={x.orc > x.planejado * 1.05 ? 'bad' : 'good'} />
@@ -82,7 +82,7 @@ export default function Trafego() {
         <label className="check"><input type="checkbox" checked={soAtivos} onChange={(e) => setSoAtivos(e.target.checked)} /> Somente campanhas e criativos ativos</label>
       </div>
 
-      <div className="grid g-5">
+      <div className="kpi-strip k5">
         <Kpi label="Impressões" value={short(d.tot.impressoes)} foot={`${int(d.tot.cliques)} cliques`} />
         <Kpi label="CTR" value={pct(m.ctr, 2)} foot={`CPC ${money2(m.cpc)}`} />
         <Kpi label="Leads" value={int(d.tot.leads)} foot={`${pct(m.taxaLead, 1)} dos cliques`} />
@@ -95,15 +95,15 @@ export default function Trafego() {
           <HBars rows={d.ranking.map((r, i) => ({ key: r.c.id, label: `${i + 1}. ${r.c.nome}`, value: r.m.cpl }))} fmt={money2} color={colors.s1} />
           <p className="small muted" style={{ marginBottom: 0 }}>Barra menor = criativo mais eficiente.</p>
         </Card>
-        <Card title={<><IcSparkle width={15} style={{ verticalAlign: -2 }} /> Leituras automáticas</>}>
-          <div className="list" style={{ gap: 8 }}>
+        <Card title="Leituras automáticas" sub="o que escalar e o que rever">
+          <div className="list" style={{ gap: 16 }}>
             {d.insights.map((i, k) => <div key={k} className={`alert ${i.tone}`}><span className="ico">{i.tone === 'good' ? '✓' : i.tone === 'bad' ? '!' : i.tone === 'warn' ? '△' : 'i'}</span><span>{i.txt}</span></div>)}
             {!d.insights.length && <div className="empty">Sem alertas.</div>}
           </div>
         </Card>
       </div>
 
-      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 26, margin: '28px 0 12px' }}>Criativos</h3>
+      <h2 className="section-title">Criativos</h2>
       <div className="grid g-3">
         {d.crs.map((c) => {
           const x = metricasCriativo(c)
@@ -112,12 +112,12 @@ export default function Trafego() {
             <div key={c.id} className="creative" style={{ cursor: 'pointer' }} onClick={() => setEditCr(c)}>
               <div className="creative-thumb">
                 <span className="fmt">{FORMATO[c.formato]}</span>
-                {rankPos.get(c.id) && rankPos.get(c.id)! <= 3 && <span className="rank">Top {rankPos.get(c.id)}</span>}
+                {rankPos.get(c.id) && rankPos.get(c.id)! <= 3 && <span className="rank">nº {rankPos.get(c.id)}</span>}
                 <span className="hl">{c.headline || c.nome}</span>
               </div>
               <div className="creative-body">
                 <div>
-                  <div className="strong">{c.nome}</div>
+                  <div className="t">{c.nome}</div>
                   <div className="small muted">{cp ? `${PLAT[cp.plataforma]} · ${cp.nome}` : '—'}</div>
                 </div>
                 <div className="small" style={{ color: 'var(--ink-2)' }}>{c.copy}</div>

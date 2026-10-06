@@ -120,11 +120,11 @@ export default function Leads() {
           <button className="btn primary" onClick={() => setEdit(novo())}><IcPlus /> Novo lead</button>
         </>}
       />
-      <div className="grid g-5">
+      <div className="kpi-strip k5">
         <Kpi label="Leads no período" value={int(doPeriodo.length)} foot={`${int(abertos.length)} abertos no funil`} />
         <Kpi label="Viraram revenda" value={int(ganhos.length)} foot={`conversão ${pct(safeDiv(ganhos.length, doPeriodo.length), 1)}`} />
         <Kpi label="CPL mídia paga" value={money(safeDiv(invest, pagos.length))} foot={`${money(invest)} investidos · ${pagos.length} leads`} />
-        <Kpi label="CAC mídia paga" value={money(safeDiv(invest, pagos.filter((l) => l.etapa === 'ganho').length))} foot="custo por nova revenda" />
+        <Kpi label="CAC mídia paga" value={pagos.some((l) => l.etapa === 'ganho') ? money(safeDiv(invest, pagos.filter((l) => l.etapa === 'ganho').length)) : '—'} foot="custo por nova revenda" />
         <Kpi label="Leads parados" value={int(abertos.filter((l) => leadParado(l)).length)} foot="sem interação há +7 dias" />
       </div>
 

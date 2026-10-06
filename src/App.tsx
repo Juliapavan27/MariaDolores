@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from 
 import { HashRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { StoreProvider, useStore } from './data/store'
 import { PRESETS, type PresetPeriodo, today, addDays } from './lib/dates'
-import { date } from './lib/format'
+import { date, MESES_LONGOS } from './lib/format'
+
+const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
+const hojeExtenso = () => {
+  const d = new Date()
+  return `${DIAS_SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES_LONGOS[d.getMonth()].toLowerCase()}`
+}
 import * as I from './components/Icons'
 import Dashboard from './pages/Dashboard'
 import Equipe from './pages/Equipe'
@@ -75,7 +81,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
       <NavLink to="/config" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onNavigate} style={{ marginTop: 12 }}>
         <I.IcSettings /> Configurações
       </NavLink>
-      <div className="sidebar-foot">Design, irreverência e paixão pelos detalhes.</div>
+      <div className="sidebar-foot">Design, irreverência<br />e paixão pelos detalhes.</div>
     </aside>
   )
 }
@@ -94,9 +100,8 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
   return (
     <header className="topbar">
       <button className="btn ghost menu-btn" onClick={onMenu} aria-label="Menu"><I.IcMenu /></button>
-      <div className="small muted">
-        Hoje, {date(today())} · Período: <b style={{ color: 'var(--ink)' }}>{date(periodo.inicio)} a {date(periodo.fim)}</b>
-      </div>
+      <span className="today">{hojeExtenso()}</span>
+      <span className="range">{date(periodo.inicio)} — {date(periodo.fim)}</span>
       <div className="spacer" />
       <select className="input" style={{ width: 'auto' }} value={periodo.chave} onChange={(e) => setPeriodo(e.target.value as PresetPeriodo)} aria-label="Período">
         {PRESETS.map((p) => <option key={p.chave} value={p.chave}>{p.label}</option>)}

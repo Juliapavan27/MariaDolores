@@ -62,7 +62,7 @@ export default function PosVenda() {
             : setEditRec({ id: newId('rec'), clienteId: '', data: today(), categoria: CATEGORIAS_RECLAMACAO[0], descricao: '', prioridade: 'media', status: 'aberta', responsavelId: '' })}><IcPlus /> {aba === 'devolucoes' ? 'Nova devolução' : 'Nova reclamação'}</button>
         </>}
       />
-      <div className="grid g-4">
+      <div className="kpi-strip k4">
         <Kpi label="Devoluções aprovadas" value={money(somaValor(d.devOk))} foot={`${pct(safeDiv(somaValor(d.devOk), d.fat), 1)} do faturamento · ${d.devOk.length} ocorrências`} />
         <Kpi label="Devoluções pendentes" value={int(d.pendDev.length)} foot={`${money(somaValor(d.pendDev))} em análise`} />
         <Kpi label="Reclamações abertas" value={int(d.abertas.length)} foot={`${d.abertas.filter((r) => r.prioridade === 'alta').length} de prioridade alta`} />

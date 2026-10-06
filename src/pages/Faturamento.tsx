@@ -71,7 +71,7 @@ export default function Faturamento() {
           <button className="btn primary" onClick={() => setEdit({ id: newId('ped'), clienteId: '', responsavelId: '', data: today(), valor: 0, pecas: 0, canal: 'showroom', colecao: db.config.colecaoAtual, status: 'faturado', parcelas: 3, gerarTitulos: true })}><IcPlus /> Lançar pedido</button>
         </>}
       />
-      <div className="grid g-5">
+      <div className="kpi-strip k5">
         <Kpi label="Faturamento bruto" value={money(d.bruto)} foot={<>{pct(safeDiv(d.bruto, d.meta))} da meta de {money(d.meta)}</>}><Meter value={safeDiv(d.bruto, d.meta)} /></Kpi>
         <Kpi label="Devoluções" value={money(d.dev)} foot={`${pct(safeDiv(d.dev, d.bruto), 1)} do bruto`} />
         <Kpi label="Faturamento líquido" value={money(d.bruto - d.dev)} foot="bruto − devoluções aprovadas" />

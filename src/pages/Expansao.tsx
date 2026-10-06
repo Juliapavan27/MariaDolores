@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Cliente, TerritorioBloqueio } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Person, Segmented, StatRow, useSearch } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, StatRow, useSearch } from '../components/ui'
 import { territorios, type LinhaTerritorio, type StatusTerritorio } from '../lib/metrics'
 import { TERR_LABEL, terrTone } from './Leads'
 import { clienteFields } from '../components/Cliente360'
@@ -58,7 +58,7 @@ export default function Expansao() {
         </>}
       />
 
-      <div className="grid g-5">
+      <div className="kpi-strip k5">
         <Kpi label="Cidades disponíveis" value={int(conta('disponivel') + conta('prioritaria'))} foot={`${conta('prioritaria')} prioritárias para abrir`} />
         <Kpi label="Vão liberar" value={int(conta('vai_liberar'))} foot={`${caindo.filter((c) => c.quedaData! <= addDays(hoje, 30)).length} nos próximos 30 dias`} />
         <Kpi label="Cidades ocupadas" value={int(conta('ocupada'))} foot={`${db.clientes.filter((c) => c.status !== 'encerrada').length} revendas vigentes`} />
@@ -74,20 +74,19 @@ export default function Expansao() {
               const aguardando = leadsAbertos.filter((l) => chave(l.cidade, l.uf) === chave(c.cidade, c.uf)).length
               return (
                 <div key={c.id} className={`tl-item ${dias <= 15 ? 'urgent' : ''}`}>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <b>{date(c.quedaData)}</b>
-                    <Badge tone={dias < 0 ? 'bad' : dias <= 15 ? 'bad' : 'warn'}>{dias < 0 ? `venceu há ${-dias}d — encerrar` : `em ${dias} dias`}</Badge>
-                    <span className="strong">{c.nome}</span>
-                    <span className="muted small">{c.cidade}/{c.uf} · {c.regiao}</span>
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                    <span className="tl-date">{date(c.quedaData)}</span>
+                    <Badge tone={dias <= 15 ? 'bad' : 'warn'}>{dias < 0 ? `venceu há ${-dias} dias — encerrar` : `em ${dias} dias`}</Badge>
                   </div>
-                  <div className="small" style={{ marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span>Motivo: {c.quedaMotivo || '—'}</span>
-                    <span className="muted">·</span>
-                    <Person id={c.responsavelId} />
-                    {aguardando > 0 && <Badge tone="good">{aguardando} lead(s) aguardando esta cidade</Badge>}
-                    <button className="btn sm" onClick={() => setQueda(c)}>Editar</button>
+                  <div style={{ marginTop: 8 }}>{c.nome} <span className="muted small">· {c.cidade}/{c.uf} · {c.regiao}</span></div>
+                  <div className="small muted" style={{ marginTop: 2 }}>
+                    {c.quedaMotivo || 'Motivo não informado'} · {db.colaboradores.find((x) => x.id === c.responsavelId)?.nome}
+                    {aguardando > 0 && <> · <span style={{ color: 'var(--good)' }}>{aguardando} lead(s) aguardando a cidade</span></>}
+                  </div>
+                  <div className="tl-actions">
                     <button className="btn sm" onClick={() => upsert('clientes', { ...c, status: 'encerrada' })}>Confirmar encerramento</button>
-                    <button className="btn sm ghost" onClick={() => upsert('clientes', { ...c, status: 'ativa', quedaData: undefined, quedaMotivo: undefined })}>Reverter (ficou)</button>
+                    <button className="btn sm ghost" onClick={() => setQueda(c)}>Editar</button>
+                    <button className="btn sm ghost" onClick={() => upsert('clientes', { ...c, status: 'ativa', quedaData: undefined, quedaMotivo: undefined })}>Ficou</button>
                   </div>
                 </div>
               )

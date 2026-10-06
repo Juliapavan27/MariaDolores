@@ -47,7 +47,7 @@ export default function Financeiro() {
           <button className="btn primary" onClick={() => setEdit({ id: newId('tit'), clienteId: '', emissao: today(), vencimento: addDays(today(), 30), valor: 0, valorPago: 0, formaPagamento: 'Boleto' })}><IcPlus /> Novo título</button>
         </>}
       />
-      <div className="grid g-4">
+      <div className="kpi-strip k4">
         <Kpi label="Total em aberto" value={money(d.totalAberto)} foot={`${d.abertos.length} títulos`} />
         <Kpi label="Vencido" value={money(d.totalVencido)} foot={`${d.devedores.length} revendas inadimplentes`} />
         <Kpi label="A receber em 30 dias" value={money(d.prox30.reduce((s, t) => s + saldo(t), 0))} foot={`${d.prox30.length} títulos`} />

@@ -53,4 +53,4 @@ O seletor de período no topo (mês, mês anterior, trimestre, semestre, ano, 12
 
 ## Stack
 
-React 18, TypeScript, Vite, React Router e Recharts. A identidade visual usa Cormorant Garamond (títulos) e Montserrat (interface), em marfim, preto e dourado, com modo escuro.
+React 18, TypeScript, Vite, React Router e Recharts. A identidade visual usa Cormorant Garamond (títulos) e Jost (interface), em marfim, tinta e ouro, com linhas finas e modo escuro.

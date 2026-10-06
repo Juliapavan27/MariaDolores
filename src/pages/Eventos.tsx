@@ -65,10 +65,10 @@ export default function Eventos() {
           <button className="btn primary" onClick={() => setEdit(novo())}><IcPlus /> Novo evento</button>
         </>}
       />
-      <div className="grid g-5">
+      <div className="kpi-strip k5">
         <Kpi label="Eventos realizados" value={int(realizados.length)} foot={periodo.label} />
-        <Kpi label="Faturamento em eventos" value={money(fat)} foot={`meta ${money(realizados.reduce((s, e) => s + e.metaFaturamento, 0))}`} />
-        <Kpi label="ROI médio" value={`${safeDiv(fat, custo).toFixed(1)}x`} foot={`investimento ${money(custo)}`} />
+        <Kpi label="Faturado em eventos" value={money(fat)} foot={`meta ${money(realizados.reduce((s, e) => s + e.metaFaturamento, 0))}`} />
+        <Kpi label="ROI médio" value={custo ? `${safeDiv(fat, custo).toFixed(1)}x` : '—'} foot={`investimento ${money(custo)}`} />
         <Kpi label="Clientes atendidas" value={int(realizados.reduce((s, e) => s + (e.clientesPresentes || 0), 0))} foot={`${int(realizados.reduce((s, e) => s + (e.novosCadastros || 0), 0))} novos cadastros`} />
         <Kpi label="NPS médio" value={nps.length ? (nps.reduce((s, e) => s + (e.nps || 0), 0) / nps.length).toFixed(1) : '—'} foot="nota 0 a 10" />
       </div>

@@ -44,7 +44,7 @@ export function Kpi({ label, value, foot, children }: { label: ReactNode; value:
 /** Barra de progresso com marcador de meta. `target` é a fração onde fica a linha da meta. */
 export function Meter({ value, target = 1, tone }: { value: number; target?: number; tone?: 'good' | 'bad' | 'warn' }) {
   const scale = Math.max(1, target, value)
-  const t = tone ?? (value >= target ? 'good' : value >= target * 0.8 ? 'warn' : 'bad')
+  const t = tone ?? (value >= target ? 'good' : '')
   return (
     <div className={`meter ${t}`} role="meter" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}>
       <span style={{ width: `${(Math.max(0, value) / scale) * 100}%` }} />
@@ -184,9 +184,9 @@ export function DataTable<T extends { id: string }>({
         </tbody>
       </table>
       {sorted.length > limit && (
-        <div style={{ padding: 10, textAlign: 'center' }}>
+        <div className="more-row">
           <button className="btn sm" onClick={() => setLimit((l) => l + pageSize * 2)}>
-            Mostrar mais ({sorted.length - limit} restantes)
+            Ver mais · {sorted.length - limit}
           </button>
         </div>
       )}

@@ -55,7 +55,7 @@ export function Legend({ items }: { items: { label: string; color: string; line?
 }
 
 const axisProps = (c: ReturnType<typeof useChartColors>) => ({
-  tick: { fill: c.muted, fontSize: 11 },
+  tick: { fill: c.muted, fontSize: 10.5, letterSpacing: 0.4 },
   axisLine: { stroke: c.axis },
   tickLine: false,
 })
@@ -68,13 +68,13 @@ export function RevenueChart({ data, height = 260 }: { data: { mes: string; fatu
       <Legend items={[{ label: 'Faturamento', color: c.s1 }, { label: 'Meta', color: c.ink, line: true, dashed: true }]} />
       <div style={{ height }}>
         <ResponsiveContainer>
-          <ComposedChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
+          <ComposedChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} barCategoryGap="38%">
             <CartesianGrid vertical={false} stroke={c.grid} />
             <XAxis dataKey="mes" tickFormatter={monthLabel} {...axisProps(c)} />
             <YAxis tickFormatter={(v) => short(v)} {...axisProps(c)} axisLine={false} width={60} />
             <Tooltip content={<Tip fmt={money} labelFmt={monthLabel} />} cursor={{ fill: c.grid, opacity: 0.5 }} />
-            <Bar dataKey="faturamento" name="Faturamento" fill={c.s1} radius={[4, 4, 0, 0]} />
-            <Line dataKey="meta" name="Meta" stroke={c.ink} strokeDasharray="5 4" strokeWidth={2} dot={false} type="linear" />
+            <Bar dataKey="faturamento" name="Faturamento" fill={c.s1} radius={[2, 2, 0, 0]} maxBarSize={30} />
+            <Line dataKey="meta" name="Meta" stroke={c.ink} strokeDasharray="3 4" strokeWidth={1.25} dot={false} type="linear" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -97,7 +97,7 @@ export function MultiLine({ data, series, xKey, xFmt, fmt = int, height = 240 }:
             <YAxis tickFormatter={(v) => fmt(v)} {...axisProps(c)} axisLine={false} width={48} allowDecimals={false} />
             <Tooltip content={<Tip fmt={fmt} labelFmt={xFmt} />} cursor={{ stroke: c.axis }} />
             {series.map((s) => (
-              <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2} dot={{ r: 3, fill: s.color, stroke: c.surface, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+              <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={1.5} dot={false} activeDot={{ r: 4, fill: s.color, stroke: c.surface, strokeWidth: 2 }} type="monotone" />
             ))}
           </LineChart>
         </ResponsiveContainer>
@@ -118,7 +118,7 @@ export function SimpleBars({ data, xKey, yKey, label, color, fmt = int, xFmt, he
           <XAxis dataKey={xKey} tickFormatter={xFmt} {...axisProps(c)} interval={0} />
           <YAxis tickFormatter={(v) => fmt(v)} {...axisProps(c)} axisLine={false} width={64} />
           <Tooltip content={<Tip fmt={fmt} labelFmt={xFmt} />} cursor={{ fill: c.grid, opacity: 0.5 }} />
-          <Bar dataKey={yKey} name={label} fill={color} radius={[4, 4, 0, 0]} />
+          <Bar dataKey={yKey} name={label} fill={color} radius={[2, 2, 0, 0]} maxBarSize={30} />
         </BarChart>
       </ResponsiveContainer>
     </div>

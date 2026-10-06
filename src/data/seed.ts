@@ -194,7 +194,10 @@ export function buildSeed(): Database {
     // exclusividade: uma revenda por cidade/bairro
     {
       let nome = pick(NOMES_LOJA)
-      while (usados.has(nome)) nome = `${pick(NOMES_LOJA)} ${pick(['Store', 'Concept', 'Atelier', 'Boutique', 'Acessórios', 'Joias', 'Bijoux', 'Prime'])}`
+      while (usados.has(nome)) {
+        const base = pick(NOMES_LOJA)
+        nome = `${base} ${pick(['Store', 'Concept', 'Atelier', 'Boutique', 'Acessórios', 'Joias', 'Bijoux', 'Prime'].filter((s) => !base.includes(s)))}`
+      }
       usados.add(nome)
       const cid = id('cli')
       const pessoa = `${pick(PRENOMES)} ${pick(SOBRENOMES)}`

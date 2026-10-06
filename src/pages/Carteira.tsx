@@ -74,14 +74,34 @@ export default function Carteira() {
         </>}
       />
 
-      <div className="grid g-4">
+      <div className="kpi-strip k4">
         <Kpi label="Base ativa (carteira)" value={int(at.base)} foot={<>{db.clientes.filter((c) => c.status === 'em_queda').length} vão cair · {db.clientes.filter((c) => c.status === 'encerrada').length} encerradas</>} />
         <Kpi label="Ativação no período" value={pct(at.taxa)} foot={<>{at.ativos} compraram · meta {pct(db.config.metaAtivacao)}</>}><Meter value={at.taxa} target={db.config.metaAtivacao} /></Kpi>
         <Kpi label={`Sem compra há +${db.config.diasInatividadeAlerta} dias`} value={int(base.filter((c) => c.status !== 'encerrada' && c.diasSemCompra > db.config.diasInatividadeAlerta).length)} foot="risco de churn — priorizar contato" />
         <Kpi label="Aniversariantes do mês" value={int(aniversariantes.length)} foot={aniversariantes.slice(0, 3).map((c) => c.nome).join(', ') || '—'} />
       </div>
 
-      <div className="grid g-2-1 mt">
+      <div className="grid g-2 mt">
+        <Card title="Ativação por região" sub={periodo.label}>
+          <HBars rows={porRegiao} fmt={(v) => pct(v)} />
+          <p className="small muted" style={{ marginBottom: 0 }}>Meta: {pct(db.config.metaAtivacao)} da base de cada região comprando no período.</p>
+        </Card>
+        <Card title="Curva ABC" sub="faturamento 12 meses">
+          {(['A', 'B', 'C'] as Curva[]).map((k) => {
+            const xs = base.filter((c) => c.curva === k && c.status !== 'encerrada')
+            return (
+              <div key={k} className="list-item">
+                <span className={`curva ${k}`}>{k}</span>
+                <div className="grow"><b>{xs.length}</b> revendas · {money(xs.reduce((s, c) => s + c.fat12, 0))}</div>
+                <span className="small muted">{pct(xs.filter((c) => c.ativoPeriodo).length / Math.max(1, xs.length))} ativas</span>
+              </div>
+            )
+          })}
+          <p className="quote" style={{ margin: '22px 0 0', fontSize: 17 }}>A curva A concentra 80% do faturamento — é onde cada dia sem compra pesa mais.</p>
+        </Card>
+      </div>
+
+      <div className="mt">
         <Card title="Revendas" sub={`${filtered.length} de ${base.length}`}>
           <div className="toolbar">
             <input className="input search" placeholder="Buscar por nome, cidade, CNPJ, Instagram…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -123,24 +143,6 @@ export default function Carteira() {
             ]}
           />
         </Card>
-        <div className="grid" style={{ alignContent: 'start' }}>
-          <Card title="Ativação por região" sub={periodo.label}>
-            <HBars rows={porRegiao} fmt={(v) => pct(v)} />
-            <p className="small muted" style={{ marginBottom: 0 }}>Meta: {pct(db.config.metaAtivacao)} da base de cada região comprando no período.</p>
-          </Card>
-          <Card title="Curva ABC" sub="faturamento 12 meses">
-            {(['A', 'B', 'C'] as Curva[]).map((k) => {
-              const xs = base.filter((c) => c.curva === k && c.status !== 'encerrada')
-              return (
-                <div key={k} className="list-item">
-                  <span className={`curva ${k}`}>{k}</span>
-                  <div className="grow"><b>{xs.length}</b> revendas · {money(xs.reduce((s, c) => s + c.fat12, 0))}</div>
-                  <span className="small muted">{pct(xs.filter((c) => c.ativoPeriodo).length / Math.max(1, xs.length))} ativas</span>
-                </div>
-              )
-            })}
-          </Card>
-        </div>
       </div>
 
       {ver && <Cliente360 cliente={ver} onClose={() => setVer(null)} onEdit={() => { setEdit(ver); setVer(null) }} />}

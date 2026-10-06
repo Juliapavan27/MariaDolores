@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react'
 
 const base = (d: string | string[]) => (p: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
     {(Array.isArray(d) ? d : [d]).map((x, i) => <path key={i} d={x} />)}
   </svg>
 )

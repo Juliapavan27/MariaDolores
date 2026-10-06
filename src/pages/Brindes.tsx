@@ -64,7 +64,7 @@ export default function Brindes() {
           <button className="btn primary" onClick={() => setMov({ id: newId('mb'), brindeId: db.brindes[0]?.id || '', data: today(), tipo: 'saida', quantidade: 1, motivo: '' })}><IcPlus /> Registrar movimento</button>
         </>}
       />
-      <div className="grid g-4">
+      <div className="kpi-strip k4">
         <Kpi label="Itens em estoque" value={int(db.brindes.reduce((s, b) => s + b.estoque, 0))} foot={`${db.brindes.length} tipos de brinde`} />
         <Kpi label="Valor em estoque" value={money(d.valorEstoque)} foot="custo unitário × estoque" />
         <Kpi label="Investido em brindes" value={money(d.custo)} foot={`${int(d.saidas.reduce((s, m) => s + m.quantidade, 0))} itens entregues · ${periodo.label.toLowerCase()}`} />
