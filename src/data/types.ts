@@ -21,6 +21,7 @@ export type Curva = 'A' | 'B' | 'C'
 
 export interface Cliente {
   id: string
+  codigo?: string // código no sistema B2B (usado para atualizar sem duplicar)
   nome: string // nome fantasia / da revenda
   responsavelNome: string // pessoa de contato
   documento: string
@@ -40,6 +41,11 @@ export interface Cliente {
   quedaData?: string
   quedaMotivo?: string
   observacoes?: string
+  // Ficha da revendedora (para ninguém chegar ao showroom sem ser conhecida)
+  publicoFinal?: string
+  oQueGira?: string
+  preferencias?: string
+  proximoPasso?: string
 }
 
 export type CanalVenda = 'showroom' | 'representante' | 'online' | 'evento'
@@ -47,6 +53,7 @@ export type StatusPedido = 'faturado' | 'pendente' | 'cancelado'
 
 export interface Pedido {
   id: string
+  codigo?: string // código no sistema B2B (usado para atualizar sem duplicar)
   clienteId: string
   responsavelId: string
   data: string
@@ -62,6 +69,7 @@ export type StatusDevolucao = 'solicitada' | 'em_analise' | 'aprovada' | 'recusa
 
 export interface Devolucao {
   id: string
+  codigo?: string // código no sistema B2B (usado para atualizar sem duplicar)
   clienteId: string
   pedidoId?: string
   data: string
@@ -90,6 +98,7 @@ export interface Reclamacao {
 
 export interface Titulo {
   id: string
+  codigo?: string // código no sistema B2B (usado para atualizar sem duplicar)
   clienteId: string
   pedidoId?: string
   emissao: string
@@ -155,6 +164,7 @@ export type EtapaLead = 'novo' | 'contato' | 'qualificado' | 'proposta' | 'negoc
 
 export interface Lead {
   id: string
+  codigo?: string // código no sistema B2B (usado para atualizar sem duplicar)
   nome: string
   empresa: string
   cidade: string
@@ -250,6 +260,22 @@ export interface Configuracoes {
   colecaoAtual: string
 }
 
+export type TipoAtendimento = 'showroom' | 'whatsapp' | 'ligacao' | 'visita_rep' | 'evento' | 'email'
+export type ResultadoAtendimento = 'pedido' | 'sem_pedido' | 'agendou' | 'sem_retorno'
+
+/** Registro de contato com a revendedora. O próximo contato vira o follow-up. */
+export interface Atendimento {
+  id: string
+  clienteId: string
+  responsavelId: string
+  data: string
+  tipo: TipoAtendimento
+  resultado: ResultadoAtendimento
+  resumo: string
+  proximoContato?: string
+  proximoPasso?: string
+}
+
 export interface Database {
   config: Configuracoes
   colaboradores: Colaborador[]
@@ -267,6 +293,7 @@ export interface Database {
   territorios: TerritorioBloqueio[]
   visitas: Visita[]
   tarefas: Tarefa[]
+  atendimentos: Atendimento[]
 }
 
 export type Colecao = Exclude<keyof Database, 'config'>

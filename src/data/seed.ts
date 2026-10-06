@@ -2,7 +2,7 @@
 // Servem para a equipe explorar a plataforma; podem ser zerados em Configurações.
 import type {
   Brinde, Campanha, Cliente, Colaborador, Criativo, Database, Devolucao, Evento, Lead,
-  MovimentoBrinde, Pedido, Reclamacao, Tarefa, TerritorioBloqueio, Titulo, Visita, EtapaLead, OrigemLead,
+  MovimentoBrinde, Pedido, Reclamacao, Tarefa, Atendimento, TerritorioBloqueio, Titulo, Visita, EtapaLead, OrigemLead,
 } from './types'
 import { addDays, addMonths, today, startOfMonth } from '../lib/dates'
 import { CATEGORIAS_RECLAMACAO, MOTIVOS_DEVOLUCAO } from './labels'
@@ -201,7 +201,7 @@ export function buildSeed(): Database {
       usados.add(nome)
       const cid = id('cli')
       const pessoa = `${pick(PRENOMES)} ${pick(SOBRENOMES)}`
-      const cadastro = addDays(hoje, -intBetween(120, 1400))
+      const cadastro = addDays(hoje, -(r() < 0.07 ? intBetween(15, 80) : intBetween(120, 1400)))
       clientes.push({
         id: cid,
         nome,
@@ -494,6 +494,31 @@ export function buildSeed(): Database {
     visitas.push({ id: id('vis'), leadId: l.id, nomeVisitante: `${l.nome} (lead)`, data: addDays(hoje, 1 + i * 2), horario: '16h', responsavelId: 'c-larissa', objetivo: 'Apresentação para nova revenda', status: 'agendada' })
   })
 
+  // ---------- Atendimentos (follow-up) ----------
+  const atendimentos: Atendimento[] = []
+  const resumos = ['Apresentei a coleção nova pelo WhatsApp', 'Visita ao showroom para reposição', 'Conversa sobre giro das peças da última compra', 'Ligação para entender por que parou de comprar', 'Envio de pré-seleção pelo perfil da loja']
+  clientes.filter((c) => c.status !== 'encerrada').forEach((c) => {
+    const n = intBetween(0, 4)
+    let d = addDays(hoje, -intBetween(40, 120))
+    for (let k = 0; k < n; k++) {
+      d = addDays(d, intBetween(7, 30))
+      if (d > hoje) break
+      const res = pick(['pedido', 'sem_pedido', 'agendou', 'sem_retorno'] as const)
+      atendimentos.push({
+        id: id('at'), clienteId: c.id, responsavelId: c.responsavelId, data: d, tipo: pick(['whatsapp', 'whatsapp', 'showroom', 'ligacao', 'visita_rep'] as const),
+        resultado: res, resumo: pick(resumos), proximoContato: addDays(d, pick([7, 15, 15, 30])), proximoPasso: pick(['Enviar pré-seleção da coleção', 'Conversar sobre giro', 'Convidar para o lançamento', 'Confirmar pedido']),
+      })
+    }
+    // a maioria das revendas tem o próximo contato já combinado para os próximos dias
+    const ult = atendimentos[atendimentos.length - 1]
+    if (ult && ult.clienteId === c.id && ult.proximoContato && ult.proximoContato < hoje && r() < 0.85) ult.proximoContato = addDays(hoje, intBetween(1, 20))
+    if (r() < 0.5) {
+      c.publicoFinal = pick(['Mulheres 30-50, classe A/B', 'Jovens 20-30, ticket médio', 'Noivas e festas', 'Executivas, peças discretas'])
+      c.oQueGira = pick(['Brincos maxi e argolas', 'Colares curtos dourados', 'Anéis com pedras coloridas', 'Pulseiras finas para composição'])
+      c.preferencias = pick(['Prefere atendimento pelo WhatsApp à tarde', 'Gosta de ver as peças pessoalmente', 'Compra sempre no lançamento', 'Pede kit vitrine junto com o pedido'])
+    }
+  })
+
   const tarefas: Tarefa[] = [
     { id: id('t'), titulo: 'Confirmar presenças do Workshop Instagram', responsavelId: 'c-larissa', prazo: addDays(hoje, 1), concluida: false, relacionado: 'Evento' },
     { id: id('t'), titulo: 'Cobrar títulos vencidos > 30 dias da carteira', responsavelId: 'c-beatriz', prazo: addDays(hoje, 2), concluida: false, relacionado: 'Débitos' },
@@ -506,13 +531,13 @@ export function buildSeed(): Database {
   return {
     config: { ...DEFAULT_CONFIG },
     colaboradores, clientes, pedidos, devolucoes, reclamacoes, titulos, brindes, movBrindes, eventos,
-    leads, campanhas, criativos, territorios, visitas, tarefas,
+    leads, campanhas, criativos, territorios, visitas, tarefas, atendimentos,
   }
 }
 
 export function emptyDatabase(): Database {
   return {
     config: { ...DEFAULT_CONFIG }, colaboradores: [], clientes: [], pedidos: [], devolucoes: [], reclamacoes: [], titulos: [],
-    brindes: [], movBrindes: [], eventos: [], leads: [], campanhas: [], criativos: [], territorios: [], visitas: [], tarefas: [],
+    brindes: [], movBrindes: [], eventos: [], leads: [], campanhas: [], criativos: [], territorios: [], visitas: [], tarefas: [], atendimentos: [],
   }
 }

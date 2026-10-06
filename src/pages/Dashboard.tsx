@@ -10,6 +10,7 @@ import {
 import { dayMonth, money, pct, safeDiv, int, date } from '../lib/format'
 import { addDays, diffDays, inRange, today } from '../lib/dates'
 import { TIPO_EVENTO } from '../data/labels'
+import { lerCarteira } from '../lib/carteira'
 
 const saudacao = () => {
   const h = new Date().getHours()
@@ -53,6 +54,7 @@ export default function Dashboard() {
     add('warn', carteira(db).filter((c) => abc.get(c.id) === 'A' && diffDays(hoje, ult.get(c.id) || '2000-01-01') > db.config.diasInatividadeAlerta).length, [`revenda curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`, `revendas curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`], '/carteira')
     add('warn', Array.from(deb.values()).filter((v) => v.maiorAtraso > 30).length, ['revenda com débito vencido há mais de 30 dias', 'revendas com débito vencido há mais de 30 dias'], '/financeiro')
     add('warn', db.brindes.filter((b) => b.estoque < b.estoqueMinimo).length, ['brinde abaixo do estoque mínimo', 'brindes abaixo do estoque mínimo'], '/brindes')
+    add('bad', lerCarteira(db).filter((l) => l.followUpVencido).length, ['follow-up combinado está vencido', 'follow-ups combinados estão vencidos'], '/semana')
     add('info', db.tarefas.filter((t) => !t.concluida && t.prazo <= addDays(hoje, 1)).length, ['tarefa vencendo até amanhã', 'tarefas vencendo até amanhã'], '/agenda')
     add('info', db.leads.filter((l) => leadParado(l)).length, ['lead sem interação há mais de 7 dias', 'leads sem interação há mais de 7 dias'], '/leads')
 

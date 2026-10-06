@@ -3,6 +3,7 @@ import { newId, useStore } from '../data/store'
 import type { Colaborador } from '../data/types'
 import { Avatar, Badge, Card, DataTable, FormModal, Meter, PageHead, Segmented, StatRow, opts, type Field } from '../components/ui'
 import { RevenueChart } from '../components/charts'
+import { indicadoresCarteira } from '../lib/carteira'
 import { ativacao, carteira, curvaABC, debitosPorCliente, devolucoesValidas, leadsNoPeriodo, metaDoPeriodo, pedidosNoPeriodo, serieMensal, somaValor, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
 import { diffDays, inRange, today } from '../lib/dates'
@@ -107,6 +108,8 @@ export default function Equipe() {
         })}
       </div>
 
+      <Matriz />
+
       {atual && atual.cargo !== 'analista' && <Detalhe colaboradorId={atual.id} />}
 
       {edit && (
@@ -150,6 +153,50 @@ function Detalhe({ colaboradorId }: { colaboradorId: string }) {
           empty="Toda a carteira já comprou no período. 🎉"
         />
       </Card>
+    </div>
+  )
+}
+
+/** Desenvolvimento por nível: resultado (meta) × carteira trabalhada (ativação e follow-up). */
+function Matriz() {
+  const { db, periodo } = useStore()
+  // período em andamento: compara com o ritmo esperado até hoje, não com a meta cheia
+  const ritmo = periodo.fim > today() ? safeDiv(diffDays(today(), periodo.inicio) + 1, diffDays(periodo.fim, periodo.inicio) + 1) : 1
+  const pessoas = useMemo(() => db.colaboradores.filter((c) => c.cargo !== 'analista' && c.ativo).map((c) => {
+    const fat = somaValor(pedidosNoPeriodo(db, periodo, c.id))
+    const ating = safeDiv(fat, metaDoPeriodo(c.metaMensal, periodo) * ritmo)
+    const at = ativacao(db, periodo, c.id)
+    const ind = indicadoresCarteira(db, periodo, c.id)
+    const trabalhada = at.taxa >= c.metaAtivacao * ritmo * 0.8 || (ind.atendimentos > 0 && ind.followUpNoPrazo >= 0.8)
+    return { c, ating, at, ind, alto: ating >= 0.9, trabalhada }
+  }), [db, periodo, ritmo])
+  const Q = [
+    { k: 'rb', alto: true, trab: false, t: 'Resultado sem base', d: 'Desenvolver método e carteira: ler a carteira junto, metas de ativação além do faturamento.' },
+    { k: 'rc', alto: true, trab: true, t: 'Referência', d: 'Multiplicar o jeito de trabalhar: compartilhar a rotina com a equipe.' },
+    { k: 'pl', alto: false, trab: false, t: 'Plano próximo', d: 'Metas curtas e acompanhamento semanal, com apoio na agenda.' },
+    { k: 'bc', alto: false, trab: true, t: 'Base sem resultado', d: 'Desenvolver conversão e ticket: simulação de fechamento e peças de maior valor.' },
+  ]
+  return (
+    <Card className="mt-lg" title="Desenvolvimento por nível" sub={`resultado × carteira trabalhada · ${periodo.label}`}>
+      <div className="matriz">
+        <span className="eixo-y">Resultado alto</span>
+        {Q.slice(0, 2).map((q) => <Quadrante key={q.k} q={q} nomes={pessoas.filter((p) => p.alto === q.alto && p.trabalhada === q.trab)} />)}
+        <span className="eixo-y">Resultado abaixo</span>
+        {Q.slice(2).map((q) => <Quadrante key={q.k} q={q} nomes={pessoas.filter((p) => p.alto === q.alto && p.trabalhada === q.trab)} />)}
+        <span />
+        <div className="eixo-x"><span>Carteira pouco trabalhada</span><span>Carteira bem trabalhada</span></div>
+      </div>
+      <p className="small muted" style={{ marginBottom: 0 }}>{ritmo < 1 && <>Período em andamento: metas comparadas ao ritmo esperado até hoje ({pct(ritmo)} do período). </>}Resultado alto: 90% da meta ou mais. Carteira bem trabalhada: ativação perto da meta ({pct(db.config.metaAtivacao)}) ou 80% dos follow-ups no prazo. Uma aprende com a outra: fechamento de um lado, rotina de follow-up do outro.</p>
+    </Card>
+  )
+}
+
+function Quadrante({ q, nomes }: { q: { t: string; d: string }; nomes: { c: Colaborador; ating: number; at: { taxa: number } }[] }) {
+  return (
+    <div className={`quad ${nomes.length ? 'on' : ''}`}>
+      <h4>{q.t}</h4>
+      <p className="small muted">{q.d}</p>
+      <div className="pins">{nomes.map((n) => <span key={n.c.id} className="pin" title={`Meta ${pct(n.ating)} · ativação ${pct(n.at.taxa)}`}>{n.c.nome.split(' ')[0]}</span>)}</div>
     </div>
   )
 }

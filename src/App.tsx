@@ -25,6 +25,9 @@ import Leads from './pages/Leads'
 import Trafego from './pages/Trafego'
 import Expansao from './pages/Expansao'
 import Configuracoes from './pages/Configuracoes'
+import Importar from './pages/Importar'
+import PlanoSemana from './pages/PlanoSemana'
+import Simulador from './pages/Simulador'
 
 interface NavItem { to: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>>; badge?: number }
 
@@ -42,6 +45,8 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
   const groups: { title: string; items: NavItem[] }[] = [
     { title: 'Gestão à vista', items: [
       { to: '/', label: 'Visão geral', icon: I.IcHome },
+      { to: '/semana', label: 'Plano da semana', icon: I.IcAgenda },
+      { to: '/simulador', label: 'Simulador', icon: I.IcSparkle },
       { to: '/equipe', label: 'Equipe & metas', icon: I.IcTeam },
       { to: '/carteira', label: 'Carteira de revendas', icon: I.IcStore },
     ] },
@@ -81,7 +86,10 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
           ))}
         </div>
       ))}
-      <NavLink to="/config" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onNavigate} style={{ marginTop: 12 }}>
+      <NavLink to="/importar" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onNavigate} style={{ marginTop: 12 }}>
+        <I.IcUpload /> Importar dados
+      </NavLink>
+      <NavLink to="/config" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={onNavigate}>
         <I.IcSettings /> Configurações
       </NavLink>
       <div className="sidebar-foot">Design, irreverência<br />e paixão pelos detalhes.</div>
@@ -202,6 +210,9 @@ function Shell() {
             <Route path="/trafego" element={<Trafego />} />
             <Route path="/expansao" element={<Expansao />} />
             <Route path="/config" element={<Configuracoes />} />
+            <Route path="/importar" element={<Importar />} />
+            <Route path="/semana" element={<PlanoSemana />} />
+            <Route path="/simulador" element={<Simulador />} />
             <Route path="*" element={<Dashboard />} />
           </Routes>
           </Protecao>

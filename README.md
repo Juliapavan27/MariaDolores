@@ -32,6 +32,9 @@ A pasta `dist/` pode ser publicada em qualquer hospedagem estática (Netlify, Ve
 | **Leads** | Funil em kanban (arrastar e soltar), lista e análise: funil de conversão, leads por semana e por origem (Meta, Google, prospecção fria, indicação, evento), CPL, CAC e motivos de perda. Importa CSV do RD Station. Cada lead mostra se a cidade dele está disponível |
 | **Tráfego & criativos** | Verba planejada de R$ 2.000/mês (50% Meta, 50% Google) comparada ao orçamento ativo, campanhas, galeria de criativos com CTR, leads, CPL e revendas geradas, ranking dos melhores criativos e leituras automáticas (o que escalar, o que pausar) |
 | **Expansão & territórios** | Linha do tempo das revendas que vão cair (data, cidade, região, motivo), mapa de cidades por região (ocupada, vai liberar, disponível, prioritária, reservada, bloqueada), leads prontos para avançar e leads em espera |
+| **Plano da semana** | A carteira lida cliente a cliente em cinco grupos (recorrentes, potencial com ticket baixo, esfriando 60–90 dias, inativas +90 dias, novas em onboarding), cada um com objetivo, cadência e ações; a ordem de contatos da semana (follow-ups vencidos primeiro); e o quadro "indicador → decisão" |
+| **Simulador** | Réguas de clientes comprando, ticket médio e reativações que mostram na hora o faturamento esperado, a distância da meta e quantas clientes ou que ticket são necessários |
+| **Importar dados** | Planilhas do sistema B2B (CSV ou Excel): equipe, revendas, pedidos, títulos, devoluções e leads, com reconhecimento automático das colunas, prévia de problemas e atualização pelo código sem duplicar |
 | **Configurações** | Metas gerais, verba de mídia, regras de alerta, backup e restauração em JSON, e opção de zerar a base |
 
 O seletor de período no topo (mês, mês anterior, trimestre, semestre, ano, 12 meses) vale para todas as abas. As metas mensais são multiplicadas pelo número de meses do período.

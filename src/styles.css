@@ -477,3 +477,70 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .modo-base i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
 .modo-base.equipe i { background: var(--good); box-shadow: 0 0 0 3px var(--good-wash); }
 @media (max-width: 860px) { .faixa { padding-left: 16px; padding-right: 16px; } }
+
+/* Importação */
+.import-tipo { display: flex; flex-direction: column; gap: 6px; text-align: left; cursor: pointer; font: inherit; color: inherit; position: relative; transition: border-color 0.2s var(--ease); }
+.import-tipo:hover { border-color: var(--gold-soft); }
+.import-tipo[aria-pressed='true'] { border-color: var(--gold-mid); background: var(--gold-wash); }
+.import-tipo .passo { font-family: var(--font-display); font-size: 15px; color: var(--rose); }
+.import-tipo .t { font-family: var(--font-display); font-size: 21px; font-weight: 500; line-height: 1.15; }
+.sub-titulo { font-family: var(--font-display); font-size: 19px; font-weight: 500; margin: 0 0 6px; }
+.mapa { display: flex; flex-direction: column; }
+.mapa-linha { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 4px 14px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.mapa-linha label { font-size: 12.5px; color: var(--ink); }
+.mapa-linha .obrig { color: var(--rose); }
+.mapa-linha .exemplo { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.erros { margin-top: 10px; padding: 10px 12px; background: var(--bad-wash); border-radius: var(--radius-sm); color: var(--bad); display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 860px) { .mapa-linha { grid-template-columns: 1fr; } .mapa-linha .exemplo { grid-column: 1; } }
+
+/* Plano da semana */
+.grupos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.grupo { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; font: inherit; color: var(--ink-2); box-shadow: var(--shadow-soft); transition: border-color 0.2s var(--ease); }
+.grupo:hover { border-color: var(--gold-soft); }
+.grupo .n { font-family: var(--font-display); font-size: 38px; line-height: 1; color: var(--ink); }
+.grupo .t { font-family: var(--font-display); font-size: 18px; color: var(--ink); margin-top: 6px; }
+.grupo[aria-pressed='true'] { background: var(--gold-wash); border-color: var(--gold-mid); }
+.grupo[aria-pressed='true'] .n { color: var(--gold); }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 10px 14px; font-size: 13px; border-top: 1px solid var(--line); padding-top: 14px; margin: 0; }
+.kv dt { color: var(--muted); font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; padding-top: 2px; }
+.kv dd { margin: 0; }
+.passos { list-style: none; counter-reset: p; margin: 18px 0 0; padding: 0; }
+.passos li { counter-increment: p; display: grid; grid-template-columns: 26px 1fr; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.passos li::before { content: counter(p); font-family: var(--font-display); font-size: 17px; color: var(--rose); line-height: 1.1; }
+.passos li:last-child { border-bottom: none; }
+.ordem { font-family: var(--font-display); font-size: 20px; color: var(--gold); width: 26px; text-align: center; flex: none; }
+
+/* Simulador */
+.sim { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: start; padding: 34px 36px; }
+.sim-ctrls { display: flex; flex-direction: column; gap: 26px; align-items: flex-start; }
+.regua { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.regua label { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--ink-2); }
+.regua label b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.regua input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; margin: 10px 0; border-radius: 2px; cursor: pointer; background: linear-gradient(to right, var(--gold-mid) var(--pct, 50%), var(--surface-3) var(--pct, 50%)); }
+.regua input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 2px solid var(--gold-mid); box-shadow: 0 2px 8px rgba(157, 105, 55, 0.3); }
+.regua input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 2px solid var(--gold-mid); }
+.regua input[type=range]:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 6px; }
+.sim-out { padding-left: 36px; border-left: 1px solid var(--line); }
+.sim-valor { display: block; font-family: var(--font-display); font-weight: 500; font-size: clamp(44px, 5vw, 66px); line-height: 1; margin-top: 12px; background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sim-delta { display: block; margin-top: 10px; font-size: 14px; font-weight: 500; }
+
+/* Matriz da equipe */
+.matriz { display: grid; grid-template-columns: 28px 1fr 1fr; gap: 12px; }
+.eixo-y { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); text-align: center; }
+.eixo-x { grid-column: 2 / 4; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); }
+.quad { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; background: var(--surface-2); }
+.quad.on { background: var(--surface); border-color: var(--gold-soft); }
+.quad h4 { margin: 0 0 4px; font-family: var(--font-display); font-size: 20px; font-weight: 500; }
+.quad p { margin: 0 0 10px; }
+.pins { display: flex; flex-wrap: wrap; gap: 6px; }
+.pin { font-size: 11.5px; padding: 3px 10px; border-radius: 99px; background: var(--rose-wash); color: var(--rose); }
+
+@media (max-width: 1180px) { .grupos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 860px) {
+  .grupos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sim { grid-template-columns: 1fr; padding: 22px; gap: 28px; }
+  .sim-out { padding-left: 0; border-left: none; border-top: 1px solid var(--line); padding-top: 22px; }
+  .matriz { grid-template-columns: 1fr; }
+  .matriz .eixo-y { display: none; }
+  .eixo-x { grid-column: 1 / -1; }
+}

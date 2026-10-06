@@ -4,7 +4,7 @@ import { buildSeed, emptyDatabase } from './seed'
 import { periodo as buildPeriodo, type Periodo, type PresetPeriodo } from '../lib/dates'
 import { useCapability, type DbError, type SharedDB, type UserCap } from '../lib/claude'
 
-const STORAGE_KEY = 'md-gestao-showroom-v1'
+const STORAGE_KEY = 'md-gestao-showroom-v2'
 const CONFIG_DOC = 'config/main'
 const COLECOES = Object.keys(emptyDatabase()).filter((k) => k !== 'config') as Colecao[]
 
@@ -143,10 +143,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const worker = async () => {
       while (i < ops.length && !erro) {
         const op = ops[i++]
-        try {
-          await op()
-        } catch (e) {
-          erro = e
+        // limite de velocidade ou instabilidade: espera e tenta de novo algumas vezes
+        for (let tentativa = 0; ; tentativa++) {
+          try {
+            await op()
+            break
+          } catch (e) {
+            const code = (e as DbError)?.code
+            if ((code === 'resource_exhausted' || code === 'unavailable') && tentativa < 6) {
+              await new Promise((r) => setTimeout(r, 800 * 2 ** tentativa + Math.random() * 400))
+              continue
+            }
+            erro = e
+            break
+          }
         }
         feitos++
         if (feitos % 10 === 0 || feitos === ops.length) setProgresso({ feitos, total: ops.length })
