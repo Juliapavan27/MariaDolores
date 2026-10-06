@@ -19,9 +19,9 @@ export interface SharedDB {
   collection(path: string): CollRef
 }
 export interface UserCap {
-  can(name: string): boolean | null
-  canEdit(): boolean
-  isOwner(): boolean
+  can(name: string): Promise<boolean | null>
+  canEdit(): Promise<boolean>
+  isOwner(): Promise<boolean>
 }
 export interface DownloadsCap {
   save(req: { filename: string; data: string | Blob }): Promise<{ status: string }>

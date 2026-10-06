@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from 'react'
-import { HashRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Component, useEffect, useMemo, useState, type ComponentType, type ErrorInfo, type ReactNode, type SVGProps } from 'react'
+import { HashRouter, NavLink, Route, Routes, useLocation } from './lib/router'
 import { StoreProvider, useStore } from './data/store'
 import { PRESETS, type PresetPeriodo, today, addDays } from './lib/dates'
 import { date, MESES_LONGOS } from './lib/format'
@@ -121,9 +121,16 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
 
 /** Faixa sob o topo: modo da base, progresso de gravação e avisos. */
 function Faixa() {
-  const { modo, podeEditar, progresso, aviso, limparAviso, iniciarBaseEquipe } = useStore()
+  const { db, modo, podeEditar, progresso, aviso, limparAviso, iniciarBaseEquipe, resetDemo } = useStore()
+  const vazio = modo !== 'equipe' && !db.clientes.length && !db.colaboradores.length
   return (
     <>
+      {vazio && (
+        <div className="faixa">
+          <span><b>Não há dados salvos neste navegador.</b> Carregue a demonstração para explorar a plataforma, ou comece cadastrando a equipe.</span>
+          <button className="btn primary sm" onClick={resetDemo}>Carregar demonstração</button>
+        </div>
+      )}
       {modo === 'vitrine' && (
         <div className="faixa">
           <span><b>Você está vendo dados de demonstração.</b> A base da equipe ainda não foi iniciada: ao iniciá-la, todos que têm acesso a esta página passam a ver e editar os mesmos dados, ao vivo.</span>
@@ -143,6 +150,31 @@ function Faixa() {
   )
 }
 
+/** Mostra o erro na tela (em vez de uma página em branco) e permite tentar de novo. */
+class Protecao extends Component<{ children: ReactNode; chave: string }, { erro: string }> {
+  state = { erro: '' }
+  static getDerivedStateFromError(e: Error) {
+    return { erro: e.message || String(e) }
+  }
+  componentDidCatch(e: Error, info: ErrorInfo) {
+    console.error(e, info.componentStack)
+  }
+  componentDidUpdate(prev: { chave: string }) {
+    if (prev.chave !== this.props.chave && this.state.erro) this.setState({ erro: '' })
+  }
+  render() {
+    if (!this.state.erro) return this.props.children
+    return (
+      <div className="card" style={{ maxWidth: 640 }}>
+        <div className="card-head"><h3>Esta tela não abriu</h3></div>
+        <p className="small" style={{ marginTop: 0 }}>Algo nos dados impediu esta aba de carregar. As outras abas continuam funcionando.</p>
+        <p className="small muted">Detalhe técnico: {this.state.erro}</p>
+        <button className="btn" onClick={() => this.setState({ erro: '' })}>Tentar de novo</button>
+      </div>
+    )
+  }
+}
+
 function Shell() {
   const [open, setOpen] = useState(false)
   const loc = useLocation()
@@ -155,6 +187,7 @@ function Shell() {
         <Topbar onMenu={() => setOpen(true)} />
         <Faixa />
         <main className="content">
+          <Protecao chave={loc.pathname}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/equipe" element={<Equipe />} />
@@ -171,6 +204,7 @@ function Shell() {
             <Route path="/config" element={<Configuracoes />} />
             <Route path="*" element={<Dashboard />} />
           </Routes>
+          </Protecao>
         </main>
       </div>
     </div>

@@ -8,10 +8,10 @@ export default defineConfig(({ mode }) => ({
   base: './',
   build:
     mode === 'artifact'
-      ? { outDir: 'dist-artifact', cssCodeSplit: false, rollupOptions: { output: { inlineDynamicImports: true } } }
+      ? { outDir: 'dist-artifact', cssCodeSplit: false, rollupOptions: { output: { inlineDynamicImports: true, format: 'iife' } } }
       : {
           rollupOptions: {
-            output: { manualChunks: { charts: ['recharts'], react: ['react', 'react-dom', 'react-router-dom'] } },
+            output: { manualChunks: { charts: ['recharts'], react: ['react', 'react-dom'] } },
           },
         },
 }))

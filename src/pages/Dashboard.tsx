@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '../lib/router'
 import { useStore } from '../data/store'
 import { Badge, Card, Kpi, Meter, Person } from '../components/ui'
 import { RevenueChart } from '../components/charts'

@@ -91,11 +91,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const [sdb, user] = await Promise.all([useCapability<SharedDB>('db'), useCapability<UserCap>('user')])
       if (!vivo || !sdb) return
       sharedRef.current = sdb
-      try {
-        setPodeEditar(user ? user.can('data.write') : null)
-      } catch {
-        setPodeEditar(null)
-      }
+      if (user) Promise.resolve().then(() => user.can('data.write')).then((v) => vivo && setPodeEditar(v ?? null), () => setPodeEditar(null))
       const falhou = (e: DbError) => e.code !== 'revoked' && setAviso('A conexão com a base da equipe caiu. Recarregue a página.')
       unsubs.push(
         sdb.doc(CONFIG_DOC).onSnapshot((s) => {
