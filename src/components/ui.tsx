@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { initials, pct } from '../lib/format'
 import { useStore } from '../data/store'
 
@@ -230,9 +230,9 @@ export function FormModal<T extends object>({
       footer={
         <>
           {onDelete && (
-            <button className="btn danger" style={{ marginRight: 'auto' }} onClick={() => confirm('Excluir este registro?') && onDelete()}>
+            <ConfirmButton className="btn danger" style={{ marginRight: 'auto' }} onConfirm={onDelete} confirmLabel="Confirmar exclusão">
               Excluir
-            </button>
+            </ConfirmButton>
           )}
           <button className="btn" onClick={onClose}>Cancelar</button>
           <button className="btn primary" onClick={submit}>Salvar</button>
@@ -314,5 +314,22 @@ export function StatRow({ label, value }: { label: ReactNode; value: ReactNode }
       <span>{label}</span>
       <span>{value}</span>
     </div>
+  )
+}
+
+/** Botão de ação destrutiva: o primeiro clique pede confirmação na própria tela, o segundo executa. */
+export function ConfirmButton({ children, confirmLabel = 'Confirmar', onConfirm, className = 'btn', style }: {
+  children: ReactNode; confirmLabel?: string; onConfirm: () => void; className?: string; style?: CSSProperties
+}) {
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const t = setTimeout(() => setArmed(false), 4000)
+    return () => clearTimeout(t)
+  }, [armed])
+  return (
+    <button type="button" className={`${className} ${armed ? 'armed' : ''}`} style={style} onClick={() => (armed ? (setArmed(false), onConfirm()) : setArmed(true))}>
+      {armed ? confirmLabel : children}
+    </button>
   )
 }

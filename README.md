@@ -12,6 +12,10 @@ npm run build    # gera a versão estática em dist/
 
 A pasta `dist/` pode ser publicada em qualquer hospedagem estática (Netlify, Vercel, GitHub Pages, S3). Não precisa de servidor.
 
+### Versão de página única
+
+`npm run build:artifact` gera `dist-artifact/maria-dolores-showroom.html`, um arquivo único com CSS e JS embutidos (usado para publicar a plataforma como link no claude.ai).
+
 ## Abas
 
 | Aba | O que mostra |

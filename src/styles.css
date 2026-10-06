@@ -220,6 +220,7 @@ body { background-image: radial-gradient(1200px 600px at 100% -10%, rgba(215, 15
 .btn.ghost { border-color: transparent; }
 .btn.ghost:hover { border-color: var(--line-strong); }
 .btn.danger { color: var(--bad); }
+.btn.armed { background: var(--bad); border-color: var(--bad); color: #fff; }
 .btn.sm { padding: 5px 10px; font-size: 10px; letter-spacing: 1.2px; }
 .btn svg { width: 14px; height: 14px; stroke-width: 1.5; }
 .btn:disabled { opacity: 0.4; cursor: default; }

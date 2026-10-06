@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../data/store'
 import type { Configuracoes as Cfg, Database } from '../data/types'
-import { Card, PageHead, StatRow } from '../components/ui'
+import { Card, ConfirmButton, PageHead, StatRow } from '../components/ui'
 import { download } from '../lib/csv'
 import { today } from '../lib/dates'
 import { int, money, pct } from '../lib/format'
@@ -75,8 +75,8 @@ export default function Configuracoes() {
               <button className="btn" onClick={() => fileRef.current?.click()}><IcUpload /> Restaurar backup</button>
             </div>
             <div className="toolbar">
-              <button className="btn" onClick={() => confirm('Recarregar os dados de demonstração? Os dados atuais serão substituídos.') && (resetDemo(), setMsg('Dados de demonstração recarregados.'))}>Recarregar demonstração</button>
-              <button className="btn danger" onClick={() => confirm('Apagar TODOS os dados para começar a usar com dados reais? Faça um backup antes.') && (clearAll(), setMsg('Base zerada. Comece cadastrando a equipe e as revendas.'))}>Zerar base (começar do zero)</button>
+              <ConfirmButton confirmLabel="Substituir os dados atuais?" onConfirm={() => { resetDemo(); setMsg('Dados de demonstração recarregados.') }}>Recarregar demonstração</ConfirmButton>
+              <ConfirmButton className="btn danger" confirmLabel="Apagar tudo? Clique de novo" onConfirm={() => { clearAll(); setMsg('Base zerada. Comece cadastrando a equipe e as revendas.') }}>Zerar base (começar do zero)</ConfirmButton>
             </div>
           </Card>
           <Card title="Integrações">
