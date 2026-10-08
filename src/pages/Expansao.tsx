@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Cliente, TerritorioBloqueio } from '../data/types'
 import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, StatRow, useSearch, FocoAviso } from '../components/ui'
-import { diasParaQueda, quedasPrevistas, territorios, type LinhaTerritorio, type QuedaPrevista, type StatusTerritorio } from '../lib/metrics'
+import { chaveCidade, diasParaQueda, quedasPrevistas, territorios, type LinhaTerritorio, type QuedaPrevista, type StatusTerritorio } from '../lib/metrics'
 import { TERR_LABEL, terrTone } from './Leads'
 import { clienteFields } from '../components/Cliente360'
 import { date, int } from '../lib/format'
@@ -11,7 +11,7 @@ import { REGIOES, UFS_AREA, ETAPA_LEAD, ORIGEM_LEAD } from '../data/labels'
 import { exportCSV } from '../lib/csv'
 import { IcDownload, IcPlus } from '../components/Icons'
 import { RaioCapital } from '../components/RaioCapital'
-import { useFoco } from '../lib/router'
+import { useFoco, useNavigate } from '../lib/router'
 import { equipeFiltrada, filtroAtivo, noLocal, passaCliente } from '../lib/filtros'
 import { km } from '../lib/format'
 import { lerLocalizacao, raiosCapital, verificarPonto } from '../lib/raio'
@@ -24,7 +24,7 @@ const COR: Record<StatusTerritorio, string> = {
 
 export default function Expansao() {
   const { db, dbArea, filtros, upsert, remove } = useStore()
-  const [filtro, setFiltro] = useState<'todas' | StatusTerritorio>('todas')
+  const [filtro, setFiltro] = useState<'todas' | 'livres' | StatusTerritorio>('todas')
   const [cidade, setCidade] = useState<LinhaTerritorio | null>(null)
   const [bloq, setBloq] = useState<TerritorioBloqueio | null>(null)
   const [queda, setQueda] = useState<Cliente | null>(null)
@@ -32,7 +32,7 @@ export default function Expansao() {
   const [todasVencidas, setTodasVencidas] = useState(false)
   const hoje = today()
 
-  const chave = (c: string, uf: string) => `${c.trim().toLowerCase()}|${uf}`
+  const chave = chaveCidade
   // ocupação e quedas usam todas as revendas da área: o filtro só escolhe o que aparece
   const equipeF = useMemo(() => equipeFiltrada(dbArea, filtros), [dbArea, filtros])
   const todasLinhas = useMemo(() => territorios(dbArea), [dbArea])
@@ -70,7 +70,7 @@ export default function Expansao() {
   const espera = leadsAbertos.filter((l) => { const s = situacao(l); return !s.pronto && s.label !== 'Cidade não mapeada' })
   const prontos = leadsAbertos.filter((l) => situacao(l).pronto)
 
-  const visiveis = linhas.filter((l) => filtro === 'todas' || l.status === filtro)
+  const visiveis = linhas.filter((l) => filtro === 'todas' || l.status === filtro || (filtro === 'livres' && (l.status === 'disponivel' || l.status === 'prioritaria')))
   const { q, setQ, filtered } = useSearch(visiveis, (l: LinhaTerritorio) => `${l.cidade} ${l.uf} ${l.regiao} ${l.revendas.map((r) => r.nome).join(' ')}`)
   const porRegiao = useMemo(() => {
     const m = new Map<string, LinhaTerritorio[]>()
@@ -78,6 +78,14 @@ export default function Expansao() {
     return Array.from(m.entries()).sort((a, b) => REGIOES.indexOf(a[0]) - REGIOES.indexOf(b[0]))
   }, [filtered])
   const conta = (s: StatusTerritorio) => linhas.filter((l) => l.status === s).length
+  const navigate = useNavigate()
+  // indicador clicado: mostra as cidades dele na tabela do mapa
+  const verCidades = (s: 'livres' | StatusTerritorio) => {
+    setFiltro(s)
+    setView('tabela')
+    setQ('')
+    setTimeout(() => document.getElementById('mapa-territorios')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 60)
+  }
 
   const itemQueda = (q: QuedaPrevista) => {
     const c = q.cliente
@@ -131,11 +139,11 @@ export default function Expansao() {
       <FocoAviso />
 
       <div className="kpi-strip k5">
-        <Kpi label="Cidades disponíveis" value={int(conta('disponivel') + conta('prioritaria'))} foot={`${conta('prioritaria')} prioritárias para abrir`} />
-        <Kpi label="Vão liberar" value={int(conta('vai_liberar'))} foot={`${proximas.filter((q) => q.data <= addDays(hoje, 30)).length} nos próximos 30 dias · ${vencidas.length} com prazo vencido`} />
-        <Kpi label="Cidades ocupadas" value={int(conta('ocupada'))} foot={`${db.clientes.filter((c) => c.status !== 'encerrada').length} revendas vigentes`} />
-        <Kpi label="Leads prontos p/ avançar" value={int(prontos.length)} foot="em cidade disponível" />
-        <Kpi label="Leads em espera" value={int(espera.length)} foot="cidade ocupada, reservada ou liberando" />
+        <Kpi label="Cidades disponíveis" value={int(conta('disponivel') + conta('prioritaria'))} foot={`${conta('prioritaria')} prioritárias para abrir`} onClick={() => verCidades('livres')} acao="ver cidades" />
+        <Kpi label="Vão liberar" value={int(conta('vai_liberar'))} foot={`${proximas.filter((q) => q.data <= addDays(hoje, 30)).length} nos próximos 30 dias · ${vencidas.length} com prazo vencido`} onClick={() => verCidades('vai_liberar')} acao="ver cidades" />
+        <Kpi label="Cidades ocupadas" value={int(conta('ocupada'))} foot={`${db.clientes.filter((c) => c.status !== 'encerrada').length} revendas vigentes`} onClick={() => verCidades('ocupada')} acao="ver cidades" />
+        <Kpi label="Leads prontos p/ avançar" value={int(prontos.length)} foot="em cidade disponível" onClick={prontos.length ? () => navigate('/leads', { titulo: `${prontos.length} leads prontos para avançar (cidade disponível)`, ids: prontos.map((l) => l.id) }) : undefined} acao="ver leads" />
+        <Kpi label="Leads em espera" value={int(espera.length)} foot="cidade ocupada, reservada ou liberando" onClick={espera.length ? () => navigate('/leads', { titulo: `${espera.length} leads em espera (cidade ocupada, reservada ou liberando)`, ids: espera.map((l) => l.id) }) : undefined} acao="ver leads" />
       </div>
 
       {!foco && <RaioCapital />}
@@ -177,11 +185,13 @@ export default function Expansao() {
 
       {foco && <RaioCapital />}
 
+      <div id="mapa-territorios" style={{ scrollMarginTop: 130 }} />
       <Card className="mt" title="Mapa de territórios" sub={`${filtered.length} cidades`} right={<Segmented value={view} onChange={setView} options={[{ value: 'mapa', label: 'Por região' }, { value: 'tabela', label: 'Tabela' }]} />}>
         <div className="toolbar">
           <input className="input search" placeholder="Buscar cidade, região ou revenda…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="input" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)}>
             <option value="todas">Todos os status</option>
+            <option value="livres">Disponíveis e prioritárias</option>
             {Object.entries(TERR_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <div className="legend" style={{ marginLeft: 'auto' }}>

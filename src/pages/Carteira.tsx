@@ -4,7 +4,7 @@ import type { Cliente, Curva } from '../data/types'
 import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, useSearch, FocoAviso } from '../components/ui'
 import { Cliente360, clienteFields, statusTone, validarRaio } from '../components/Cliente360'
 import { HBars } from '../components/charts'
-import { useFoco } from '../lib/router'
+import { useFoco, useNavigate } from '../lib/router'
 import { quedasPrevistas, ativacao, curvaABC, debitosPorCliente, faturamento12m, pedidosNoPeriodo, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, int } from '../lib/format'
 import { diffDays, today } from '../lib/dates'
@@ -63,6 +63,10 @@ export default function Carteira() {
     responsavelId: db.colaboradores.find((c) => c.cargo !== 'analista')?.id || '', status: 'ativa', dataCadastro: today(), limiteCredito: 5000,
   })
 
+  const navigate = useNavigate()
+  // indicador clicado: a própria Carteira passa a mostrar só as revendas dele
+  const focar = (titulo: string, ids: string[]) => { navigate('/carteira', { titulo, ids }); window.scrollTo({ top: 0 }) }
+  const semCompra = base.filter((c) => c.status !== 'encerrada' && c.diasSemCompra > db.config.diasInatividadeAlerta)
   const aniversariantes = base.filter((c) => c.status !== 'encerrada' && c.aniversario?.startsWith(today().slice(5, 7)))
 
   return (
@@ -79,10 +83,14 @@ export default function Carteira() {
       <FocoAviso />
 
       <div className="kpi-strip k4">
-        <Kpi label="Base ativa (carteira)" value={int(at.base)} foot={<>{quedasPrevistas(db).length} vão cair · {db.clientes.filter((c) => c.status === 'encerrada').length} encerradas</>} />
-        <Kpi label="Ativação no período" value={pct(at.taxa)} foot={<>{at.ativos} compraram · meta {pct(db.config.metaAtivacao)}</>}><Meter value={at.taxa} target={db.config.metaAtivacao} /></Kpi>
-        <Kpi label={`Sem compra há +${db.config.diasInatividadeAlerta} dias`} value={int(base.filter((c) => c.status !== 'encerrada' && c.diasSemCompra > db.config.diasInatividadeAlerta).length)} foot="risco de churn — priorizar contato" />
-        <Kpi label="Aniversariantes do mês" value={int(aniversariantes.length)} foot={aniversariantes.slice(0, 3).map((c) => c.nome).join(', ') || '—'} />
+        <Kpi label="Base ativa (carteira)" value={int(at.base)} foot={<>{quedasPrevistas(db).length} vão cair · {db.clientes.filter((c) => c.status === 'encerrada').length} encerradas</>}
+          onClick={quedasPrevistas(db).length ? () => navigate('/expansao', { titulo: `${quedasPrevistas(db).length} revendas com queda prevista`, ids: quedasPrevistas(db).map((q) => q.cliente.id) }) : undefined} acao="ver as que vão cair" />
+        <Kpi label="Ativação no período" value={pct(at.taxa)} foot={<>{at.ativos} compraram · meta {pct(db.config.metaAtivacao)}</>}
+          onClick={at.inativos.length ? () => focar(`${at.inativos.length} revendas sem compra no período`, at.inativos.map((c) => c.id)) : undefined} acao="ver quem não comprou"><Meter value={at.taxa} target={db.config.metaAtivacao} /></Kpi>
+        <Kpi label={`Sem compra há +${db.config.diasInatividadeAlerta} dias`} value={int(semCompra.length)} foot="risco de churn — priorizar contato"
+          onClick={semCompra.length ? () => focar(`${semCompra.length} revendas sem compra há mais de ${db.config.diasInatividadeAlerta} dias`, semCompra.map((c) => c.id)) : undefined} />
+        <Kpi label="Aniversariantes do mês" value={int(aniversariantes.length)} foot={aniversariantes.slice(0, 3).map((c) => c.nome).join(', ') || '—'}
+          onClick={aniversariantes.length ? () => focar(`${aniversariantes.length} aniversariantes do mês`, aniversariantes.map((c) => c.id)) : undefined} />
       </div>
 
       <div className="grid g-2 mt">

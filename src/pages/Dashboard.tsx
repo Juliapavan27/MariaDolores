@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
-import { Link } from '../lib/router'
+import { Link, useNavigate } from '../lib/router'
 import { useStore } from '../data/store'
 import { Badge, Card, Kpi, Meter, Person } from '../components/ui'
 import { RevenueChart } from '../components/charts'
@@ -19,6 +19,7 @@ const saudacao = () => {
 
 export default function Dashboard() {
   const { db, periodo } = useStore()
+  const navigate = useNavigate()
 
   const d = useMemo(() => {
     const hoje = today()
@@ -88,15 +89,15 @@ export default function Dashboard() {
       {(!db.colaboradores.length || !db.clientes.length) && <ComeceAqui />}
 
       <div className="kpi-strip k5">
-        <Kpi label="Faturamento líquido" value={money(d.fat)} foot={<>meta {money(d.meta)}{mesesComFechamento(db, periodo).length ? ' · fechamento do BI' : ''}</>}>
+        <Kpi label="Faturamento líquido" value={money(d.fat)} foot={<>meta {money(d.meta)}{mesesComFechamento(db, periodo).length ? ' · fechamento do BI' : ''}</>} onClick={() => navigate('/faturamento')} acao="ver faturamento">
           <Meter value={safeDiv(d.fat, d.meta)} target={1} />
         </Kpi>
-        <Kpi label="Ativação da base" value={pct(d.at.taxa)} foot={<>{d.at.ativos} de {d.at.base} revendas · meta {pct(metaAt)}</>}>
+        <Kpi label="Ativação da base" value={pct(d.at.taxa)} foot={<>{d.at.ativos} de {d.at.base} revendas · meta {pct(metaAt)}</>} onClick={d.at.inativos.length ? () => navigate('/carteira', { titulo: `${d.at.inativos.length} revendas da carteira sem compra no período`, ids: d.at.inativos.map((c) => c.id) }) : undefined} acao="ver quem não comprou">
           <Meter value={d.at.taxa} target={metaAt} />
         </Kpi>
-        <Kpi label="Ticket médio" value={money(safeDiv(d.fat, d.ped.length))} foot={<>{int(d.ped.length)} pedidos faturados</>} />
-        <Kpi label="Devoluções" value={money(d.dev)} foot={<>{pct(safeDiv(d.dev, d.fat), 1)} do faturamento</>} />
-        <Kpi label="Débitos vencidos" value={money(d.vencido)} foot={<Link to="/financeiro">ver cobrança</Link>} />
+        <Kpi label="Ticket médio" value={money(safeDiv(d.fat, d.ped.length))} foot={<>{int(d.ped.length)} pedidos faturados</>} onClick={() => navigate('/faturamento')} acao="ver pedidos" />
+        <Kpi label="Devoluções" value={money(d.dev)} foot={<>{pct(safeDiv(d.dev, d.fat), 1)} do faturamento</>} onClick={() => navigate('/pos-venda')} acao="ver devoluções" />
+        <Kpi label="Débitos vencidos" value={money(d.vencido)} foot="títulos em atraso" onClick={() => navigate('/financeiro')} acao="ver cobrança" />
       </div>
 
       <div className="grid g-2-1 mt">

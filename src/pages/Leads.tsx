@@ -4,7 +4,7 @@ import { newId, useStore } from '../data/store'
 import type { EtapaLead, Lead, OrigemLead } from '../data/types'
 import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, opts, useSearch, FocoAviso } from '../components/ui'
 import { HBars, MultiLine, useChartColors } from '../components/charts'
-import { leadParado, leadsNoPeriodo, metaDoPeriodo, territorios, type LinhaTerritorio } from '../lib/metrics'
+import { chaveCidade, leadParado, leadsNoPeriodo, metaDoPeriodo, territorios, type LinhaTerritorio } from '../lib/metrics'
 import { dayMonth, money, pct, safeDiv, int, date } from '../lib/format'
 import { addDays, diffDays, today } from '../lib/dates'
 import { ETAPA_LEAD, ETAPAS_FUNIL, ORIGEM_LEAD, UFS_AREA } from '../data/labels'
@@ -33,7 +33,7 @@ export default function Leads() {
     territorios(dbArea).forEach((t) => m.set(t.chave, t))
     return m
   }, [dbArea])
-  const terr = useCallback((l: Lead) => mapa.get(`${l.cidade.trim().toLowerCase()}|${l.uf}`), [mapa])
+  const terr = useCallback((l: Lead) => mapa.get(chaveCidade(l.cidade, l.uf)), [mapa])
 
   const doPeriodo = leadsNoPeriodo(db, periodo)
   const abertos = db.leads.filter((l) => !['ganho', 'perdido'].includes(l.etapa))

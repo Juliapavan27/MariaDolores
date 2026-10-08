@@ -31,15 +31,19 @@ export function Card({ title, sub, right, children, className = '' }: { title?: 
   )
 }
 
-export function Kpi({ label, value, foot, children }: { label: ReactNode; value: ReactNode; foot?: ReactNode; children?: ReactNode }) {
-  return (
-    <div className="card kpi">
+export function Kpi({ label, value, foot, children, onClick, acao = 'ver lista' }: { label: ReactNode; value: ReactNode; foot?: ReactNode; children?: ReactNode; onClick?: () => void; acao?: string }) {
+  const corpo = (
+    <>
       <div className="kpi-label">{label}</div>
       <div className="kpi-value">{value}</div>
       {children}
       {foot && <div className="kpi-foot">{foot}</div>}
-    </div>
+      {onClick && <div className="kpi-acao">{acao} →</div>}
+    </>
   )
+  // indicador clicável: leva para a lista do que ele conta
+  if (onClick) return <button type="button" className="card kpi clicavel" onClick={onClick}>{corpo}</button>
+  return <div className="card kpi">{corpo}</div>
 }
 
 /** Barra de progresso com marcador de meta. `target` é a fração onde fica a linha da meta. */

@@ -1,6 +1,5 @@
 import type { Cliente, Colaborador, Configuracoes, Curva, Database, Fechamento, Lead, Pedido, Titulo } from '../data/types'
 import { addDays, addMonths, diffDays, endOfMonth, inRange, mesesNoPeriodo, monthsBetween, startOfMonth, today, ym, type Periodo } from './dates'
-import { CIDADES_ALVO } from '../data/seed'
 import { ehCapitalSP, regiaoPorUF } from '../data/labels'
 import { date, safeDiv } from './format'
 
@@ -261,7 +260,9 @@ export interface LinhaTerritorio {
   leadsAbertos: number
 }
 
-const chaveCidade = (cidade: string, uf: string) => `${cidade.trim().toLowerCase()}|${uf}`
+/** Chave da cidade sem acento nem caixa: "Araçatuba" e "Aracatuba" são a mesma cidade. */
+export const chaveCidade = (cidade: string, uf: string) =>
+  `${(cidade || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ')}|${(uf || '').toUpperCase()}`
 
 export function territorios(db: Database): LinhaTerritorio[] {
   const hoje = today()
@@ -271,7 +272,6 @@ export function territorios(db: Database): LinhaTerritorio[] {
     if (!linhas.has(k)) linhas.set(k, { chave: k, cidade, uf, regiao, status: 'disponivel', revendas: [], leadsAbertos: 0 })
     return linhas.get(k)!
   }
-  CIDADES_ALVO.forEach(([c, uf, r]) => garantir(c, uf, r))
   db.clientes.filter((c) => c.cidade).forEach((c) => garantir(c.cidade, c.uf, c.regiao).revendas.push(c))
   db.territorios.forEach((t) => garantir(t.cidade, t.uf, t.regiao))
   db.leads.forEach((l) => {
