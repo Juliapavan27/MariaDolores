@@ -72,7 +72,7 @@ const CIDADES: [string, string, string][] = [
   ['Pouso Alegre', 'MG', 'Sul de Minas'],
   ['Poços de Caldas', 'MG', 'Sul de Minas'],
   ['Varginha', 'MG', 'Sul de Minas'],
-  ['Campo Grande', 'MS', 'Outros estados'],
+  ['Fortaleza', 'CE', 'Nordeste — CE'],
   ['São Paulo — Itaim Bibi', 'SP', 'Capital SP — Zona Sul'],
   ['São Paulo — Brooklin', 'SP', 'Capital SP — Zona Sul'],
   ['São Paulo — Campo Belo', 'SP', 'Capital SP — Zona Sul'],
@@ -122,8 +122,8 @@ const CIDADES: [string, string, string][] = [
   ['Três Corações', 'MG', 'Sul de Minas'],
   ['Extrema', 'MG', 'Sul de Minas'],
   ['Alfenas', 'MG', 'Sul de Minas'],
-  ['Dourados', 'MS', 'Outros estados'],
-  ['Londrina', 'PR', 'Outros estados'],
+  ['Recife', 'PE', 'Nordeste — PE'],
+  ['Salvador', 'BA', 'Nordeste — BA'],
 ]
 
 /** Cidades-alvo ainda sem revenda (aparecem como disponíveis na expansão). */
@@ -143,7 +143,7 @@ export const CIDADES_ALVO: [string, string, string][] = [
   ['Botucatu', 'SP', 'Interior — Sorocaba'],
   ['Araçatuba', 'SP', 'Interior — Oeste Paulista'],
   ['Lavras', 'MG', 'Sul de Minas'],
-  ['Uberlândia', 'MG', 'Outros estados'],
+  ['Uberlândia', 'MG', 'Sudeste — MG'],
 ]
 
 const NOMES_LOJA = [
@@ -473,10 +473,10 @@ export function buildSeed(): Database {
   // ---------- Bloqueios de território ----------
   const territorios: TerritorioBloqueio[] = [
     { id: id('ter'), cidade: 'São Paulo — Jardins', uf: 'SP', regiao: 'Capital SP — Centro', tipo: 'bloqueada', motivo: 'Raio de proteção da loja própria / showroom' },
-    { id: id('ter'), cidade: 'Curitiba', uf: 'PR', regiao: 'Outros estados', tipo: 'bloqueada', motivo: 'Praça atendida pela matriz' },
+    { id: id('ter'), cidade: 'Belo Horizonte', uf: 'MG', regiao: 'Sudeste — MG', tipo: 'bloqueada', motivo: 'Praça atendida pela representante de BH' },
     { id: id('ter'), cidade: 'Atibaia', uf: 'SP', regiao: 'Campinas e região', tipo: 'reservada', motivo: 'Negociação avançada com lead indicado', ate: addDays(hoje, 30) },
     { id: id('ter'), cidade: 'Praia Grande', uf: 'SP', regiao: 'Baixada Santista', tipo: 'prioritaria', motivo: 'Alta demanda de leads, prioridade de abertura' },
-    { id: id('ter'), cidade: 'Uberlândia', uf: 'MG', regiao: 'Outros estados', tipo: 'prioritaria', motivo: 'Cidade polo sem revenda' },
+    { id: id('ter'), cidade: 'Uberlândia', uf: 'MG', regiao: 'Sudeste — MG', tipo: 'prioritaria', motivo: 'Cidade polo sem revenda' },
   ]
 
   // ---------- Visitas ao showroom ----------

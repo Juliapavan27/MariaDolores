@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../data/store'
 import type { Configuracoes as Cfg, Database } from '../data/types'
 import { Card, ConfirmButton, PageHead, StatRow } from '../components/ui'
-import { download } from '../lib/csv'
+import { download, exportCSV } from '../lib/csv'
 import { today } from '../lib/dates'
 import { int, money, pct } from '../lib/format'
+import { AREA_SHOWROOM, macroRegiao } from '../data/labels'
 import { IcDownload, IcUpload } from '../components/Icons'
 
 const CAMPOS: { k: keyof Cfg; label: string; type: 'text' | 'number'; step?: string; help?: string }[] = [
@@ -19,7 +20,7 @@ const CAMPOS: { k: keyof Cfg; label: string; type: 'text' | 'number'; step?: str
 ]
 
 export default function Configuracoes() {
-  const { db, modo, setConfig, replaceAll, resetDemo, clearAll } = useStore()
+  const { db, dbCompleto, foraArea, modo, setConfig, replaceAll, resetDemo, clearAll } = useStore()
   const [form, setForm] = useState<Cfg>(db.config)
   const [msg, setMsg] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -72,12 +73,12 @@ export default function Configuracoes() {
                 ? 'Os dados ficam na base da equipe: todos que têm acesso a esta página veem as mesmas informações, atualizadas ao vivo. Restaurar um backup grava os registros do arquivo nesta base.'
                 : 'Os dados ficam salvos neste navegador. Faça backup periódico e use o arquivo para levar os dados para outro computador ou para a base da equipe.'}
             </p>
-            <StatRow label="Revendas" value={int(db.clientes.length)} />
-            <StatRow label="Pedidos" value={int(db.pedidos.length)} />
-            <StatRow label="Leads" value={int(db.leads.length)} />
+            <StatRow label="Revendas" value={int(dbCompleto.clientes.length)} />
+            <StatRow label="Pedidos" value={int(dbCompleto.pedidos.length)} />
+            <StatRow label="Leads" value={int(dbCompleto.leads.length)} />
             <StatRow label="Eventos" value={int(db.eventos.length)} />
             <div className="toolbar" style={{ marginTop: 14 }}>
-              <button className="btn" onClick={() => download(`maria-dolores-backup-${today()}.json`, JSON.stringify(db, null, 2), 'application/json')}><IcDownload /> Baixar backup</button>
+              <button className="btn" onClick={() => download(`maria-dolores-backup-${today()}.json`, JSON.stringify(dbCompleto, null, 2), 'application/json')}><IcDownload /> Baixar backup</button>
               <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = '' }} />
               <button className="btn" onClick={() => fileRef.current?.click()}><IcUpload /> Restaurar backup</button>
             </div>
@@ -85,6 +86,30 @@ export default function Configuracoes() {
               {modo !== 'equipe' && <ConfirmButton confirmLabel="Substituir os dados atuais?" onConfirm={() => { resetDemo(); setMsg('Dados de demonstração recarregados.') }}>Recarregar demonstração</ConfirmButton>}
               <ConfirmButton className="btn danger" confirmLabel="Apagar tudo? Clique de novo" onConfirm={() => { clearAll(); setMsg('Base zerada. Comece cadastrando a equipe e as revendas.') }}>Zerar base (começar do zero)</ConfirmButton>
             </div>
+          </Card>
+          <Card title="Área do Showroom SP">
+            <p className="small" style={{ marginTop: 0 }}>
+              O showroom responde pelas regiões <b>{AREA_SHOWROOM.join(' e ')}</b>. Revendas e leads de outras UFs continuam guardados na base,
+              mas ficam fora das telas, das metas e da ativação.
+            </p>
+            <StatRow label="Revendas na área" value={int(db.clientes.length)} />
+            <StatRow label="Revendas sem UF (confirmar no cadastro)" value={int(db.clientes.filter((c) => !c.uf).length)} />
+            <StatRow label="Revendas fora da área" value={int(foraArea.clientes.length)} />
+            <StatRow label="Faturamento dessas revendas fora da área" value={money(foraArea.faturamento)} />
+            <StatRow label="Leads fora da área" value={int(foraArea.leads.length)} />
+            {foraArea.clientes.length > 0 && (
+              <div className="small muted" style={{ marginTop: 8 }}>
+                {foraArea.clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => `${c.nome} (${c.cidade ? `${c.cidade}/` : ''}${c.uf} · ${macroRegiao(c.uf)})`).join(' · ')}
+              </div>
+            )}
+            {(foraArea.clientes.length > 0 || foraArea.leads.length > 0) && (
+              <div className="toolbar" style={{ marginTop: 12 }}>
+                <button className="btn" onClick={() => exportCSV('fora-da-area.csv', [
+                  ...foraArea.clientes.map((c) => ({ Tipo: 'Revenda', Nome: c.nome, Cidade: c.cidade, UF: c.uf, Regiao: macroRegiao(c.uf), Observacoes: c.observacoes || '' })),
+                  ...foraArea.leads.map((l) => ({ Tipo: 'Lead', Nome: l.nome, Cidade: l.cidade, UF: l.uf, Regiao: macroRegiao(l.uf), Observacoes: l.empresa || '' })),
+                ])}><IcDownload /> Exportar lista</button>
+              </div>
+            )}
           </Card>
           <Card title="Integrações">
             <StatRow label="RD Station" value="Importação de leads via CSV (Leads › Importar)" />

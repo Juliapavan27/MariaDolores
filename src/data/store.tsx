@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Colecao, Configuracoes, Database } from './types'
+import type { Cliente, Colecao, Configuracoes, Database, Lead } from './types'
+import { foraDaArea } from './labels'
 import { buildSeed, emptyDatabase } from './seed'
 import { periodo as buildPeriodo, type Periodo, type PresetPeriodo } from '../lib/dates'
 import { useCapability, type DbError, type SharedDB, type UserCap } from '../lib/claude'
@@ -17,8 +18,20 @@ type WithId = { id: string }
  */
 export type Modo = 'local' | 'vitrine' | 'equipe'
 
+/** Revendas e leads de UFs fora do Sudeste/Nordeste: ficam na base, mas fora das telas e das metas. */
+export interface ForaDaArea {
+  clientes: Cliente[]
+  leads: Lead[]
+  /** Faturamento líquido de todos os pedidos dessas revendas. */
+  faturamento: number
+}
+
 interface StoreValue {
+  /** Só a área do Showroom SP (Sudeste e Nordeste). */
   db: Database
+  /** Base inteira, inclusive o que está fora da área (backup e importação). */
+  dbCompleto: Database
+  foraArea: ForaDaArea
   modo: Modo
   podeEditar: boolean | null
   progresso: { feitos: number; total: number } | null
@@ -53,6 +66,36 @@ function loadLocal(): Database {
     /* armazenamento indisponível: segue com dados de demonstração */
   }
   return buildSeed()
+}
+
+function separarArea(db: Database): { db: Database; fora: ForaDaArea } {
+  const clientesFora = db.clientes.filter((c) => foraDaArea(c.uf))
+  const leadsFora = db.leads.filter((l) => foraDaArea(l.uf))
+  if (!clientesFora.length && !leadsFora.length && !db.territorios.some((t) => foraDaArea(t.uf))) {
+    return { db, fora: { clientes: [], leads: [], faturamento: 0 } }
+  }
+  const ids = new Set(clientesFora.map((c) => c.id))
+  const daArea = <T extends { clienteId?: string }>(xs: T[]) => xs.filter((x) => !x.clienteId || !ids.has(x.clienteId))
+  return {
+    db: {
+      ...db,
+      clientes: db.clientes.filter((c) => !ids.has(c.id)),
+      pedidos: daArea(db.pedidos),
+      devolucoes: daArea(db.devolucoes),
+      reclamacoes: daArea(db.reclamacoes),
+      titulos: daArea(db.titulos),
+      movBrindes: daArea(db.movBrindes),
+      visitas: daArea(db.visitas),
+      atendimentos: daArea(db.atendimentos),
+      leads: db.leads.filter((l) => !foraDaArea(l.uf)),
+      territorios: db.territorios.filter((t) => !foraDaArea(t.uf)),
+    },
+    fora: {
+      clientes: clientesFora,
+      leads: leadsFora,
+      faturamento: db.pedidos.filter((p) => ids.has(p.clienteId) && p.status !== 'cancelado').reduce((s, p) => s + p.valor, 0),
+    },
+  }
 }
 
 export const newId = (prefix = 'id') => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
@@ -245,9 +288,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     sdb.doc(CONFIG_DOC).set(limpo(emptyDatabase().config)).catch((e) => setAviso(mensagemErro(e)))
   }, [])
 
+  const dbCompleto = naEquipe ? shared : local
+  const area = useMemo(() => separarArea(dbCompleto), [dbCompleto])
+
   const value = useMemo<StoreValue>(
     () => ({
-      db: naEquipe ? shared : local,
+      db: area.db,
+      dbCompleto,
+      foraArea: area.fora,
       modo,
       verExemplos,
       setVerExemplos: (v: boolean) => {
@@ -269,7 +317,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearAll,
       iniciarBaseEquipe,
     }),
-    [naEquipe, verExemplos, shared, local, modo, podeEditar, progresso, aviso, presetPeriodo, upsert, bulkUpsert, remove, setConfig, replaceAll, clearAll, iniciarBaseEquipe],
+    [area, dbCompleto, verExemplos, local, modo, podeEditar, progresso, aviso, presetPeriodo, upsert, bulkUpsert, remove, setConfig, replaceAll, clearAll, iniciarBaseEquipe],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

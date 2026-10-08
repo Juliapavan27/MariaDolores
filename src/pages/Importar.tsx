@@ -10,7 +10,7 @@ import { IcDownload, IcUpload } from '../components/Icons'
 const ORDEM = ['equipe', 'revendas', 'pedidos', 'titulos', 'devolucoes', 'leads']
 
 export default function Importar() {
-  const { db, modo, bulkUpsert, progresso } = useStore()
+  const { dbCompleto: db, modo, bulkUpsert, progresso } = useStore()
   const [tipo, setTipo] = useState<TipoImportacao | null>(null)
   const [arquivo, setArquivo] = useState('')
   const [linhas, setLinhas] = useState<Record<string, string>[]>([])

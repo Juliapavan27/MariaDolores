@@ -7,7 +7,7 @@ import { TERR_LABEL, terrTone } from './Leads'
 import { clienteFields } from '../components/Cliente360'
 import { date, int } from '../lib/format'
 import { addDays, diffDays, today } from '../lib/dates'
-import { REGIOES, UFS, ETAPA_LEAD, ORIGEM_LEAD } from '../data/labels'
+import { REGIOES, UFS_AREA, ETAPA_LEAD, ORIGEM_LEAD } from '../data/labels'
 import { exportCSV } from '../lib/csv'
 import { IcDownload, IcPlus } from '../components/Icons'
 
@@ -176,7 +176,7 @@ export default function Expansao() {
           onDelete={db.territorios.some((t) => t.id === bloq.id) ? () => { remove('territorios', bloq.id); setBloq(null) } : undefined}
           fields={[
             { name: 'cidade', label: 'Cidade (ou bairro na capital)', required: true },
-            { name: 'uf', label: 'UF', type: 'select', required: true, options: UFS.map((u) => ({ value: u, label: u })) },
+            { name: 'uf', label: 'UF', type: 'select', required: true, options: UFS_AREA.map((u) => ({ value: u, label: u })) },
             { name: 'regiao', label: 'Região', type: 'select', required: true, options: REGIOES.map((r) => ({ value: r, label: r })) },
             { name: 'tipo', label: 'Tipo', type: 'select', required: true, options: [{ value: 'prioritaria', label: 'Prioritária (abrir revenda)' }, { value: 'reservada', label: 'Reservada (negociação em andamento)' }, { value: 'bloqueada', label: 'Bloqueada (não abrir)' }] },
             { name: 'ate', label: 'Válido até (opcional)', type: 'date' },

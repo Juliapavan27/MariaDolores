@@ -136,7 +136,6 @@ export const REGIOES = [
   'Interior — Sorocaba',
   'Interior — Oeste Paulista',
   'Sul de Minas',
-  'Outros estados',
   'Sudeste — MG',
   'Sudeste — RJ',
   'Sudeste — ES',
@@ -149,5 +148,38 @@ export const REGIOES = [
   'Nordeste — AL',
   'Nordeste — BA',
   'Nordeste — SE',
-  'Exterior',
 ]
+
+/** Macrorregião de cada UF (EX = exterior). */
+const MACRO_UF: Record<string, string> = {
+  SP: 'Sudeste', RJ: 'Sudeste', MG: 'Sudeste', ES: 'Sudeste',
+  MA: 'Nordeste', CE: 'Nordeste', PI: 'Nordeste', RN: 'Nordeste', PB: 'Nordeste', PE: 'Nordeste', AL: 'Nordeste', BA: 'Nordeste', SE: 'Nordeste',
+  PR: 'Sul', SC: 'Sul', RS: 'Sul',
+  GO: 'Centro-Oeste', MT: 'Centro-Oeste', MS: 'Centro-Oeste', DF: 'Centro-Oeste',
+  AC: 'Norte', AP: 'Norte', AM: 'Norte', PA: 'Norte', RO: 'Norte', RR: 'Norte', TO: 'Norte',
+  EX: 'Exterior',
+}
+
+/** Área de responsabilidade do Showroom SP. */
+export const AREA_SHOWROOM = ['Sudeste', 'Nordeste']
+
+export const macroRegiao = (uf?: string) => MACRO_UF[(uf || '').trim().toUpperCase()] || ''
+
+/** UF fora do Sudeste/Nordeste. UF vazia não conta como fora: fica na área até alguém confirmar. */
+export const foraDaArea = (uf?: string) => {
+  const m = macroRegiao(uf)
+  return !!m && !AREA_SHOWROOM.includes(m)
+}
+
+/** UFs que o showroom atende (para os campos de cadastro). */
+export const UFS_AREA = UFS.filter((u) => !foraDaArea(u))
+
+/** Região padrão a partir da cidade e da UF. */
+export function regiaoPorUF(cidade: string, uf: string) {
+  const u = (uf || '').trim().toUpperCase()
+  if (!u) return ''
+  if (u === 'SP') return cidade.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').startsWith('sao paulo') ? 'Capital SP' : 'Interior / Grande SP'
+  const m = macroRegiao(u)
+  if (!m) return ''
+  return AREA_SHOWROOM.includes(m) ? `${m} — ${u}` : `Fora da área — ${m}`
+}

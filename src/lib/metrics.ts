@@ -1,6 +1,7 @@
 import type { Cliente, Curva, Database, Lead, Pedido, Titulo } from '../data/types'
 import { addDays, addMonths, diffDays, inRange, mesesNoPeriodo, monthsBetween, startOfMonth, today, ym, type Periodo } from './dates'
 import { CIDADES_ALVO } from '../data/seed'
+import { regiaoPorUF } from '../data/labels'
 import { safeDiv } from './format'
 
 export const pedidosValidos = (pedidos: Pedido[]) => pedidos.filter((p) => p.status === 'faturado')
@@ -155,7 +156,7 @@ export function territorios(db: Database): LinhaTerritorio[] {
     if (l.etapa === 'ganho' || l.etapa === 'perdido') return
     const k = chaveCidade(l.cidade, l.uf)
     if (linhas.has(k)) linhas.get(k)!.leadsAbertos++
-    else garantir(l.cidade, l.uf, 'Outros estados').leadsAbertos++
+    else garantir(l.cidade, l.uf, regiaoPorUF(l.cidade, l.uf)).leadsAbertos++
   })
 
   linhas.forEach((linha) => {

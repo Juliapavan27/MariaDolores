@@ -6,7 +6,7 @@ import { HBars, MultiLine, useChartColors } from '../components/charts'
 import { leadParado, leadsNoPeriodo, metaDoPeriodo, territorios, type LinhaTerritorio } from '../lib/metrics'
 import { dayMonth, money, pct, safeDiv, int, date } from '../lib/format'
 import { addDays, diffDays, today } from '../lib/dates'
-import { ETAPA_LEAD, ETAPAS_FUNIL, ORIGEM_LEAD, UFS } from '../data/labels'
+import { ETAPA_LEAD, ETAPAS_FUNIL, ORIGEM_LEAD, UFS_AREA } from '../data/labels'
 import { exportCSV, parseCSV } from '../lib/csv'
 import { IcDownload, IcPlus, IcUpload } from '../components/Icons'
 
@@ -226,7 +226,7 @@ export default function Leads() {
             { name: 'telefone', label: 'Telefone / WhatsApp', type: 'tel' },
             { name: 'email', label: 'E-mail', type: 'email' },
             { name: 'cidade', label: 'Cidade (igual ao cadastro de revendas)', required: true, help: (() => { const t = terr(edit); return t ? `Território: ${TERR_LABEL[t.status]}${t.liberaEm ? ` em ${date(t.liberaEm)}` : ''}${t.revendas.length ? ` · ${t.revendas.filter((r) => r.status !== 'encerrada').map((r) => r.nome).join(', ')}` : ''}` : 'Cidade ainda não mapeada na Expansão.' })() },
-            { name: 'uf', label: 'UF', type: 'select', required: true, options: UFS.map((u) => ({ value: u, label: u })) },
+            { name: 'uf', label: 'UF', type: 'select', required: true, options: UFS_AREA.map((u) => ({ value: u, label: u })) },
             { name: 'origem', label: 'Origem', type: 'select', required: true, options: opts(ORIGEM_LEAD) },
             { name: 'campanhaId', label: 'Campanha', type: 'select', options: db.campanhas.map((c) => ({ value: c.id, label: `${c.plataforma === 'meta' ? 'Meta' : 'Google'} — ${c.nome}` })) },
             { name: 'criativoId', label: 'Criativo', type: 'select', options: db.criativos.filter((c) => !edit.campanhaId || c.campanhaId === edit.campanhaId).map((c) => ({ value: c.id, label: c.nome })) },

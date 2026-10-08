@@ -4,7 +4,7 @@ import type { Cliente } from '../data/types'
 import { Badge, DataTable, FormModal, Modal, StatRow, Tabs, opts, type Field, Person } from './ui'
 import { AtendimentoForm, RESULTADO_ATENDIMENTO, TIPO_ATENDIMENTO, novoAtendimento } from './AtendimentoForm'
 import type { Atendimento } from '../data/types'
-import { CANAL, REGIOES, STATUS_CLIENTE, STATUS_DEVOLUCAO, STATUS_PEDIDO, STATUS_RECLAMACAO, TIPO_CLIENTE, UFS } from '../data/labels'
+import { CANAL, REGIOES, STATUS_CLIENTE, STATUS_DEVOLUCAO, STATUS_PEDIDO, STATUS_RECLAMACAO, TIPO_CLIENTE, UFS_AREA } from '../data/labels'
 import { curvaABC, faturamento12m, pedidosValidos, saldo, statusTitulo, ultimaCompraMap } from '../lib/metrics'
 import { date, money, int, safeDiv } from '../lib/format'
 import { diffDays, today } from '../lib/dates'
@@ -16,7 +16,7 @@ export function clienteFields(db: ReturnType<typeof useStore>['db']): Field[] {
     { name: 'tipo', label: 'Tipo', type: 'select', options: opts(TIPO_CLIENTE), required: true },
     { name: 'documento', label: 'CNPJ / CPF' },
     { name: 'cidade', label: 'Cidade (ou bairro na capital)', required: true },
-    { name: 'uf', label: 'UF', type: 'select', options: UFS.map((u) => ({ value: u, label: u })), required: true },
+    { name: 'uf', label: 'UF', type: 'select', options: UFS_AREA.map((u) => ({ value: u, label: u })), required: true },
     { name: 'regiao', label: 'Região', type: 'select', options: REGIOES.map((r) => ({ value: r, label: r })), required: true },
     { name: 'responsavelId', label: 'Atendida por', type: 'select', required: true, options: db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => ({ value: c.id, label: c.nome })), help: db.colaboradores.some((c) => c.cargo !== 'analista') ? undefined : 'Cadastre primeiro as vendedoras e representantes em Equipe & metas.' },
     { name: 'telefone', label: 'Telefone / WhatsApp', type: 'tel' },

@@ -5,7 +5,7 @@ import type {
   Cargo, CanalVenda, Cliente, Colaborador, Colecao, Database, Devolucao, EtapaLead, Lead, OrigemLead, Pedido,
   StatusCliente, StatusDevolucao, StatusPedido, TipoCliente, Titulo,
 } from '../data/types'
-import { REGIOES } from '../data/labels'
+import { REGIOES, regiaoPorUF } from '../data/labels'
 import { today } from './dates'
 import { parseCSV } from './csv'
 
@@ -156,8 +156,7 @@ function regiao(s: string, uf: string, cidade: string) {
   const r = REGIOES.find((x) => norm(x) === norm(s)) || REGIOES.find((x) => s && norm(x).includes(norm(s)))
   if (r) return r
   if (s) return s
-  if (uf && uf !== 'SP') return uf === 'MG' ? 'Sul de Minas' : 'Outros estados'
-  return norm(cidade).startsWith('sao paulo') ? 'Capital SP' : 'Interior / Grande SP'
+  return regiaoPorUF(cidade, uf || 'SP')
 }
 
 const SIN_REVENDA = ['cnpj', 'cpf/cnpj', 'cnpj/cpf', 'codigo cliente', 'cod cliente', 'id cliente', 'cliente', 'revenda', 'loja', 'razao social', 'nome fantasia']
