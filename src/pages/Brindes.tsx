@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { Brinde, MovimentoBrinde } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, FocoAviso } from '../components/ui'
 import { HBars, useChartColors } from '../components/charts'
 import { date, money, int, money2 } from '../lib/format'
 import { inRange, today } from '../lib/dates'
@@ -10,6 +11,7 @@ import { IcDownload, IcPlus } from '../components/Icons'
 
 export default function Brindes() {
   const { db, periodo, upsert, remove } = useStore()
+  const { ids: foco } = useFoco()
   const [editB, setEditB] = useState<Brinde | null>(null)
   const [mov, setMov] = useState<MovimentoBrinde | null>(null)
   const colors = useChartColors()
@@ -64,6 +66,7 @@ export default function Brindes() {
           <button className="btn primary" onClick={() => setMov({ id: newId('mb'), brindeId: db.brindes[0]?.id || '', data: today(), tipo: 'saida', quantidade: 1, motivo: '' })}><IcPlus /> Registrar movimento</button>
         </>}
       />
+      <FocoAviso />
       <div className="kpi-strip k4">
         <Kpi label="Itens em estoque" value={int(db.brindes.reduce((s, b) => s + b.estoque, 0))} foot={`${db.brindes.length} tipos de brinde`} />
         <Kpi label="Valor em estoque" value={money(d.valorEstoque)} foot="custo unitário × estoque" />
@@ -72,7 +75,7 @@ export default function Brindes() {
       </div>
       <div className="grid g-2-1 mt">
         <Card title="Estoque de brindes">
-          <DataTable rows={db.brindes} onRowClick={setEditB} pageSize={50} columns={[
+          <DataTable rows={foco ? db.brindes.filter((b) => foco.has(b.id)) : db.brindes} onRowClick={setEditB} pageSize={50} columns={[
             { key: 'nome', label: 'Brinde', value: (r) => r.nome, render: (r) => <><div className="strong">{r.nome}</div><div className="small muted">{r.categoria}</div></> },
             { key: 'regra', label: 'Regra de concessão', render: (r) => <span className="small">{r.regraConcessao}</span> },
             { key: 'custo', label: 'Custo un.', num: true, value: (r) => r.custoUnitario, render: (r) => money2(r.custoUnitario) },

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { Tarefa, Visita } from '../data/types'
-import { Badge, Card, FormModal, PageHead, Person, Segmented } from '../components/ui'
+import { Badge, Card, FormModal, PageHead, Person, Segmented, FocoAviso } from '../components/ui'
 import { date, dayMonth } from '../lib/format'
 import { addDays, diffDays, parse, today } from '../lib/dates'
 import { IcPlus } from '../components/Icons'
@@ -25,7 +26,8 @@ export default function Agenda() {
     return Array.from(porDia.entries())
   }, [db.visitas, hoje, janela, quem])
 
-  const tarefas = db.tarefas.filter((t) => !quem || t.responsavelId === quem).sort((a, b) => Number(a.concluida) - Number(b.concluida) || a.prazo.localeCompare(b.prazo))
+  const { ids: foco } = useFoco()
+  const tarefas = db.tarefas.filter((t) => (!quem || t.responsavelId === quem) && (!foco || foco.has(t.id))).sort((a, b) => Number(a.concluida) - Number(b.concluida) || a.prazo.localeCompare(b.prazo))
   const eventos = db.eventos.filter((e) => e.dataInicio >= hoje && e.dataInicio <= addDays(hoje, Number(janela)) && e.status !== 'cancelado')
   const aniversarios = db.clientes.filter((c) => {
     if (c.status === 'encerrada' || !c.aniversario) return false
@@ -45,6 +47,7 @@ export default function Agenda() {
           <button className="btn primary" onClick={() => setEditV({ id: newId('vis'), nomeVisitante: '', data: hoje, horario: '14h', responsavelId: quem || db.colaboradores[0]?.id || '', objetivo: '', status: 'agendada' })}><IcPlus /> Agendar visita</button>
         </>}
       />
+      <FocoAviso />
       <div className="toolbar">
         <select className="input" value={quem} onChange={(e) => setQuem(e.target.value)}>
           <option value="">Toda a equipe</option>

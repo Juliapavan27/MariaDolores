@@ -7,27 +7,45 @@ import {
   type ButtonHTMLAttributes, type ReactElement, type ReactNode,
 } from 'react'
 
-interface RouterValue {
-  pathname: string
-  navigate: (to: string) => void
+/** Itens que um alerta aponta: a tela de destino mostra só eles até a pessoa pedir "Ver tudo". */
+export interface Foco {
+  titulo: string
+  ids: string[]
 }
 
-const Ctx = createContext<RouterValue>({ pathname: '/', navigate: () => {} })
+interface RouterValue {
+  pathname: string
+  foco: Foco | null
+  navigate: (to: string, foco?: Foco) => void
+  limparFoco: () => void
+}
+
+const Ctx = createContext<RouterValue>({ pathname: '/', foco: null, navigate: () => {}, limparFoco: () => {} })
 
 export function HashRouter({ children }: { children: ReactNode }) {
   const [pathname, setPathname] = useState('/')
-  const navigate = useCallback((to: string) => setPathname(to), [])
-  const value = useMemo(() => ({ pathname, navigate }), [pathname, navigate])
+  const [foco, setFoco] = useState<Foco | null>(null)
+  // trocar de tela sem foco (menu, links comuns) sempre limpa o filtro do alerta anterior
+  const navigate = useCallback((to: string, f?: Foco) => { setPathname(to); setFoco(f || null) }, [])
+  const limparFoco = useCallback(() => setFoco(null), [])
+  const value = useMemo(() => ({ pathname, foco, navigate, limparFoco }), [pathname, foco, navigate, limparFoco])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
 export const useLocation = () => ({ pathname: useContext(Ctx).pathname })
 export const useNavigate = () => useContext(Ctx).navigate
 
-type LinkProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'type'> & { to: string }
+/** Foco vindo de um alerta: `ids` é null quando a tela deve mostrar tudo. */
+export function useFoco() {
+  const { foco, limparFoco } = useContext(Ctx)
+  const ids = useMemo(() => (foco ? new Set(foco.ids) : null), [foco])
+  return { foco, ids, limpar: limparFoco }
+}
+
+type LinkProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'type'> & { to: string; foco?: Foco }
 
 /** Botão com aparência de link que troca de tela. */
-export function Link({ to, onClick, className, ...rest }: LinkProps & { className?: string }) {
+export function Link({ to, foco, onClick, className, ...rest }: LinkProps & { className?: string }) {
   const { navigate } = useContext(Ctx)
   return (
     <button
@@ -36,7 +54,7 @@ export function Link({ to, onClick, className, ...rest }: LinkProps & { classNam
       className={`lnk ${className || ''}`}
       onClick={(e) => {
         onClick?.(e)
-        if (!e.defaultPrevented) navigate(to)
+        if (!e.defaultPrevented) navigate(to, foco)
       }}
     />
   )

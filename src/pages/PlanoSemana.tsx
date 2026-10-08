@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useFoco } from '../lib/router'
 import { useStore } from '../data/store'
 import type { Atendimento, Cliente } from '../data/types'
-import { Badge, Card, DataTable, Kpi, PageHead, Person } from '../components/ui'
+import { Badge, Card, DataTable, Kpi, PageHead, Person, FocoAviso } from '../components/ui'
 import { Cliente360 } from '../components/Cliente360'
 import { AtendimentoForm, novoAtendimento } from '../components/AtendimentoForm'
 import { GRUPOS, ORDEM_GRUPOS, indicadoresCarteira, lerCarteira, ordemDaSemana, type Grupo } from '../lib/carteira'
@@ -18,7 +19,14 @@ export default function PlanoSemana() {
   const [registrar, setRegistrar] = useState<Atendimento | null>(null)
 
   const linhas = useMemo(() => lerCarteira(db, quem || undefined), [db, quem])
-  const lista = useMemo(() => ordemDaSemana(linhas, 25), [linhas])
+  const { ids: foco } = useFoco()
+  // vindo de um alerta, leva direto para a lista de contatos (fica abaixo dos grupos)
+  useEffect(() => {
+    if (!foco) return
+    const t = setTimeout(() => document.getElementById('ordem-semana')?.scrollIntoView({ block: 'start' }), 120)
+    return () => clearTimeout(t)
+  }, [foco])
+  const lista = useMemo(() => (foco ? ordemDaSemana(linhas.filter((l) => foco.has(l.cliente.id)), 999) : ordemDaSemana(linhas, 25)), [linhas, foco])
   const ind = useMemo(() => indicadoresCarteira(db, periodo, quem || undefined), [db, periodo, quem])
   const contagem = useMemo(() => Object.fromEntries(ORDEM_GRUPOS.map((g) => [g, linhas.filter((l) => l.grupo === g)])) as Record<Grupo, typeof linhas>, [linhas])
 
@@ -54,6 +62,7 @@ export default function PlanoSemana() {
           <button className="btn primary" onClick={() => setRegistrar(novoAtendimento('', quem || db.colaboradores[0]?.id || ''))}>Registrar atendimento</button>
         </>}
       />
+      <FocoAviso />
 
       <div className="grupos">
         {ORDEM_GRUPOS.map((k) => (
@@ -92,6 +101,7 @@ export default function PlanoSemana() {
         </Card>
       </div>
 
+      <div id="ordem-semana" style={{ scrollMarginTop: 120 }} />
       <Card className="mt" title="Ordem de contatos da semana" sub="follow-ups vencidos, esfriando, novas, recorrentes, potencial e inativas">
         <div className="list">
           {lista.map((l, i) => (

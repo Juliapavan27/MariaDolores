@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { Titulo } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, PageHead, Person, Segmented } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, PageHead, Person, Segmented, FocoAviso } from '../components/ui'
 import { HBars, useChartColors } from '../components/charts'
 import { aging, debitosPorCliente, saldo, statusTitulo } from '../lib/metrics'
 import { date, money, pct, safeDiv } from '../lib/format'
@@ -34,7 +35,8 @@ export default function Financeiro() {
     }
   }, [db])
 
-  const rows = db.titulos.filter((t) => filtro === 'todos' || statusTitulo(t) === filtro)
+  const { ids: foco } = useFoco()
+  const rows = db.titulos.filter((t) => (filtro === 'todos' || statusTitulo(t) === filtro) && (!foco || foco.has(t.clienteId)))
 
   return (
     <>
@@ -47,6 +49,7 @@ export default function Financeiro() {
           <button className="btn primary" onClick={() => setEdit({ id: newId('tit'), clienteId: '', emissao: today(), vencimento: addDays(today(), 30), valor: 0, valorPago: 0, formaPagamento: 'Boleto' })}><IcPlus /> Novo título</button>
         </>}
       />
+      <FocoAviso />
       <div className="kpi-strip k4">
         <Kpi label="Total em aberto" value={money(d.totalAberto)} foot={`${d.abertos.length} títulos`} />
         <Kpi label="Vencido" value={money(d.totalVencido)} foot={`${d.devedores.length} revendas inadimplentes`} />
@@ -58,7 +61,7 @@ export default function Financeiro() {
           <HBars rows={Object.entries(d.ag).map(([k, v]) => ({ key: k, label: `${k} dias`, value: v }))} fmt={money} color={colors.s2} />
         </Card>
         <Card title="Prioridade de cobrança" sub="revendas com saldo vencido">
-          <DataTable rows={d.devedores} pageSize={8} initialSort={{ key: 'vencido', dir: -1 }} columns={[
+          <DataTable rows={foco ? d.devedores.filter((x) => foco.has(x.id)) : d.devedores} pageSize={8} initialSort={{ key: 'vencido', dir: -1 }} columns={[
             { key: 'nome', label: 'Revenda', value: (r) => r.cliente?.nome, render: (r) => <><div className="strong">{r.cliente?.nome}</div><div className="small muted">{r.cliente?.telefone}</div></> },
             { key: 'resp', label: 'Responsável', render: (r) => r.cliente ? <Person id={r.cliente.responsavelId} /> : '—' },
             { key: 'atraso', label: 'Maior atraso', num: true, value: (r) => r.maiorAtraso, render: (r) => <Badge tone={r.maiorAtraso > 60 ? 'bad' : r.maiorAtraso > 30 ? 'warn' : 'info'}>{r.maiorAtraso} dias</Badge> },

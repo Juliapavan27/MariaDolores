@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { initials, pct } from '../lib/format'
 import { useStore } from '../data/store'
+import { useFoco } from '../lib/router'
 
 export function PageHead({ eyebrow, title, desc, actions }: { eyebrow?: string; title: string; desc?: ReactNode; actions?: ReactNode }) {
   return (
@@ -310,6 +311,19 @@ export function useSearch<T>(rows: T[], text: (r: T) => string) {
     return rows.filter((r) => text(r).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(s))
   }, [rows, q, text])
   return { q, setQ, filtered }
+}
+
+/** Faixa no topo da tela quando ela foi aberta por um alerta da visão geral. */
+export function FocoAviso() {
+  const { foco, limpar } = useFoco()
+  if (!foco) return null
+  return (
+    <div className="alert info" style={{ marginBottom: 16, alignItems: 'center' }}>
+      <span className="ico">i</span>
+      <span style={{ flex: 1 }}>Mostrando só o que o alerta aponta: <b>{foco.titulo}</b>.</span>
+      <button type="button" className="btn sm" onClick={limpar}>Ver tudo</button>
+    </div>
+  )
 }
 
 export function StatRow({ label, value }: { label: ReactNode; value: ReactNode }) {

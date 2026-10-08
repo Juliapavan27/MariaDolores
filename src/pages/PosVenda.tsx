@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { Devolucao, Reclamacao } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, PageHead, Person, Tabs, opts } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, PageHead, Person, Tabs, opts, FocoAviso } from '../components/ui'
 import { HBars, useChartColors } from '../components/charts'
 import { devolucoesValidas, pedidosNoPeriodo, somaValor } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
@@ -45,7 +46,9 @@ export default function PosVenda() {
   }, [db, periodo])
 
   const devRows = soAbertas ? d.pendDev : d.devs
-  const recRows = soAbertas ? d.abertas : d.recs
+  const { ids: foco } = useFoco()
+  // vindo de um alerta, mostra as reclamações apontadas, mesmo fora do período
+  const recRows = foco ? db.reclamacoes.filter((r) => foco.has(r.id)) : soAbertas ? d.abertas : d.recs
 
   return (
     <>
@@ -62,6 +65,7 @@ export default function PosVenda() {
             : setEditRec({ id: newId('rec'), clienteId: '', data: today(), categoria: CATEGORIAS_RECLAMACAO[0], descricao: '', prioridade: 'media', status: 'aberta', responsavelId: '' })}><IcPlus /> {aba === 'devolucoes' ? 'Nova devolução' : 'Nova reclamação'}</button>
         </>}
       />
+      <FocoAviso />
       <div className="kpi-strip k4">
         <Kpi label="Devoluções aprovadas" value={money(somaValor(d.devOk))} foot={`${pct(safeDiv(somaValor(d.devOk), d.fat), 1)} do faturamento · ${d.devOk.length} ocorrências`} />
         <Kpi label="Devoluções pendentes" value={int(d.pendDev.length)} foot={`${money(somaValor(d.pendDev))} em análise`} />

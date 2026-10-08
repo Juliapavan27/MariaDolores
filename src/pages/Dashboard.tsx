@@ -45,18 +45,19 @@ export default function Dashboard() {
     const ult = ultimaCompraMap(db)
     const abc = curvaABC(db)
     const deb = debitosPorCliente(db)
-    const pend: { tone: 'bad' | 'warn' | 'info'; n: number; txt: string; to: string }[] = []
-    const add = (tone: 'bad' | 'warn' | 'info', n: number, [um, varios]: [string, string], to: string) => {
-      if (n > 0) pend.push({ tone, n, txt: n === 1 ? um : varios, to })
+    const pend: { tone: 'bad' | 'warn' | 'info'; n: number; txt: string; to: string; ids: string[] }[] = []
+    const add = (tone: 'bad' | 'warn' | 'info', ids: string[], [um, varios]: [string, string], to: string) => {
+      const n = ids.length
+      if (n > 0) pend.push({ tone, n, txt: n === 1 ? um : varios, to, ids })
     }
-    add('bad', caindo.filter((q) => q.data <= addDays(hoje, 15)).length, ['revenda cai nos próximos 15 dias', 'revendas caem nos próximos 15 dias'], '/expansao')
-    add('bad', recAbertas.filter((r) => r.prioridade === 'alta').length, ['reclamação de prioridade alta em aberto', 'reclamações de prioridade alta em aberto'], '/pos-venda')
-    add('warn', carteira(db).filter((c) => abc.get(c.id) === 'A' && diffDays(hoje, ult.get(c.id) || '2000-01-01') > db.config.diasInatividadeAlerta).length, [`revenda curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`, `revendas curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`], '/carteira')
-    add('warn', Array.from(deb.values()).filter((v) => v.maiorAtraso > 30).length, ['revenda com débito vencido há mais de 30 dias', 'revendas com débito vencido há mais de 30 dias'], '/financeiro')
-    add('warn', db.brindes.filter((b) => b.estoque < b.estoqueMinimo).length, ['brinde abaixo do estoque mínimo', 'brindes abaixo do estoque mínimo'], '/brindes')
-    add('bad', lerCarteira(db).filter((l) => l.followUpVencido).length, ['follow-up combinado está vencido', 'follow-ups combinados estão vencidos'], '/semana')
-    add('info', db.tarefas.filter((t) => !t.concluida && t.prazo <= addDays(hoje, 1)).length, ['tarefa vencendo até amanhã', 'tarefas vencendo até amanhã'], '/agenda')
-    add('info', db.leads.filter((l) => leadParado(l)).length, ['lead sem interação há mais de 7 dias', 'leads sem interação há mais de 7 dias'], '/leads')
+    add('bad', caindo.filter((q) => q.data <= addDays(hoje, 15)).map((q) => q.cliente.id), ['revenda cai nos próximos 15 dias', 'revendas caem nos próximos 15 dias'], '/expansao')
+    add('bad', recAbertas.filter((r) => r.prioridade === 'alta').map((r) => r.id), ['reclamação de prioridade alta em aberto', 'reclamações de prioridade alta em aberto'], '/pos-venda')
+    add('warn', carteira(db).filter((c) => abc.get(c.id) === 'A' && diffDays(hoje, ult.get(c.id) || '2000-01-01') > db.config.diasInatividadeAlerta).map((c) => c.id), [`revenda curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`, `revendas curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`], '/carteira')
+    add('warn', Array.from(deb.entries()).filter(([, v]) => v.maiorAtraso > 30).map(([id]) => id), ['revenda com débito vencido há mais de 30 dias', 'revendas com débito vencido há mais de 30 dias'], '/financeiro')
+    add('warn', db.brindes.filter((b) => b.estoque < b.estoqueMinimo).map((b) => b.id), ['brinde abaixo do estoque mínimo', 'brindes abaixo do estoque mínimo'], '/brindes')
+    add('bad', lerCarteira(db).filter((l) => l.followUpVencido).map((l) => l.cliente.id), ['follow-up combinado está vencido', 'follow-ups combinados estão vencidos'], '/semana')
+    add('info', db.tarefas.filter((t) => !t.concluida && t.prazo <= addDays(hoje, 1)).map((t) => t.id), ['tarefa vencendo até amanhã', 'tarefas vencendo até amanhã'], '/agenda')
+    add('info', db.leads.filter((l) => leadParado(l)).map((l) => l.id), ['lead sem interação há mais de 7 dias', 'leads sem interação há mais de 7 dias'], '/leads')
 
     return { ped, fat, meta, at, dev, vencido, equipe, eventos, caindo, leads, ganhos, invest, pagos, pend, serie: serieMensal(db, 12) }
   }, [db, periodo])
@@ -105,7 +106,7 @@ export default function Dashboard() {
         <Card title="Atenção hoje">
           <div className="todo">
             {d.pend.map((p) => (
-              <Link key={p.txt} to={p.to}>
+              <Link key={p.txt} to={p.to} foco={{ titulo: `${p.n} ${p.txt}`, ids: p.ids }}>
                 <span className="dot" style={{ background: `var(--${p.tone === 'info' ? 'line-strong' : p.tone})` }} aria-label={p.tone === 'bad' ? 'Crítico' : p.tone === 'warn' ? 'Atenção' : 'Informação'} />
                 <span><span className="num">{p.n}</span>{p.txt}</span>
                 <span className="arrow">→</span>
@@ -153,7 +154,7 @@ export default function Dashboard() {
             {!d.eventos.length && <div className="empty">Nenhum evento agendado.</div>}
           </div>
         </Card>
-        <Card title="Revendas que vão cair" right={<Link to="/expansao">Expansão</Link>}>
+        <Card title="Revendas que vão cair" right={<Link to="/expansao" foco={d.caindo.length ? { titulo: `${d.caindo.length} revendas com queda prevista`, ids: d.caindo.map((q) => q.cliente.id) } : undefined}>Expansão</Link>}>
           <div className="list">
             {d.caindo.slice(0, 5).map(({ cliente: c, data, automatica }) => {
               const dias = diffDays(data, today())

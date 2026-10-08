@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { EtapaLead, Lead, OrigemLead } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, opts, useSearch } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, opts, useSearch, FocoAviso } from '../components/ui'
 import { HBars, MultiLine, useChartColors } from '../components/charts'
 import { leadParado, leadsNoPeriodo, metaDoPeriodo, territorios, type LinhaTerritorio } from '../lib/metrics'
 import { dayMonth, money, pct, safeDiv, int, date } from '../lib/format'
@@ -36,7 +37,8 @@ export default function Leads() {
 
   const doPeriodo = leadsNoPeriodo(db, periodo)
   const abertos = db.leads.filter((l) => !['ganho', 'perdido'].includes(l.etapa))
-  const base = (view === 'funil' ? abertos.concat(doPeriodo.filter((l) => ['ganho', 'perdido'].includes(l.etapa))) : doPeriodo).filter((l) => !origem || l.origem === origem)
+  const { ids: foco } = useFoco()
+  const base = foco ? db.leads.filter((l) => foco.has(l.id)) : (view === 'funil' ? abertos.concat(doPeriodo.filter((l) => ['ganho', 'perdido'].includes(l.etapa))) : doPeriodo).filter((l) => !origem || l.origem === origem)
   const { q, setQ, filtered } = useSearch(base, useCallback((l: Lead) => `${l.nome} ${l.empresa} ${l.cidade} ${l.email} ${l.telefone}`, []))
 
   const invest = metaDoPeriodo(db.config.investimentoMidiaMensal, periodo)
@@ -120,6 +122,7 @@ export default function Leads() {
           <button className="btn primary" onClick={() => setEdit(novo())}><IcPlus /> Novo lead</button>
         </>}
       />
+      <FocoAviso />
       <div className="kpi-strip k5">
         <Kpi label="Leads no período" value={int(doPeriodo.length)} foot={`${int(abertos.length)} abertos no funil`} />
         <Kpi label="Viraram revenda" value={int(ganhos.length)} foot={`conversão ${pct(safeDiv(ganhos.length, doPeriodo.length), 1)}`} />

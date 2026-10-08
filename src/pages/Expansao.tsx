@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Cliente, TerritorioBloqueio } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, StatRow, useSearch } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, StatRow, useSearch, FocoAviso } from '../components/ui'
 import { diasParaQueda, quedasPrevistas, territorios, type LinhaTerritorio, type QuedaPrevista, type StatusTerritorio } from '../lib/metrics'
 import { TERR_LABEL, terrTone } from './Leads'
 import { clienteFields } from '../components/Cliente360'
@@ -11,6 +11,7 @@ import { REGIOES, UFS_AREA, ETAPA_LEAD, ORIGEM_LEAD } from '../data/labels'
 import { exportCSV } from '../lib/csv'
 import { IcDownload, IcPlus } from '../components/Icons'
 import { RaioCapital } from '../components/RaioCapital'
+import { useFoco } from '../lib/router'
 import { km } from '../lib/format'
 import { lerLocalizacao, raiosCapital, verificarPonto } from '../lib/raio'
 import { ehCapitalSP } from '../data/labels'
@@ -31,11 +32,13 @@ export default function Expansao() {
   const hoje = today()
 
   const linhas = useMemo(() => territorios(db), [db])
-  const quedas = useMemo(() => quedasPrevistas(db), [db])
+  const { ids: foco } = useFoco()
+  const todas = useMemo(() => quedasPrevistas(db), [db])
+  const quedas = foco ? todas.filter((q) => foco.has(q.cliente.id)) : todas
   const proximas = quedas.filter((q) => q.data >= hoje)
   // prazo vencido: mais antigas primeiro, que são as decisões mais atrasadas
   const vencidas = quedas.filter((q) => q.data < hoje).sort((a, b) => a.data.localeCompare(b.data))
-  const previstaDe = new Map(quedas.map((q) => [q.cliente.id, q]))
+  const previstaDe = new Map(todas.map((q) => [q.cliente.id, q]))
   const recemLiberadas = db.clientes.filter((c) => c.status === 'encerrada' && c.quedaData && c.quedaData >= addDays(hoje, -60))
   const leadsAbertos = db.leads.filter((l) => !['ganho', 'perdido'].includes(l.etapa))
   const chave = (c: string, uf: string) => `${c.trim().toLowerCase()}|${uf}`
@@ -116,6 +119,8 @@ export default function Expansao() {
         </>}
       />
 
+      <FocoAviso />
+
       <div className="kpi-strip k5">
         <Kpi label="Cidades disponíveis" value={int(conta('disponivel') + conta('prioritaria'))} foot={`${conta('prioritaria')} prioritárias para abrir`} />
         <Kpi label="Vão liberar" value={int(conta('vai_liberar'))} foot={`${proximas.filter((q) => q.data <= addDays(hoje, 30)).length} nos próximos 30 dias · ${vencidas.length} com prazo vencido`} />
@@ -124,7 +129,7 @@ export default function Expansao() {
         <Kpi label="Leads em espera" value={int(espera.length)} foot="cidade ocupada, reservada ou liberando" />
       </div>
 
-      <RaioCapital />
+      {!foco && <RaioCapital />}
 
       <div className="grid g-2-1 mt">
         <Card title="Revendas que vão cair" sub={`marcadas pela equipe ou há mais de ${Math.max(0, diasParaQueda(db.config) - 90)} dias sem comprar — a região libera na data`}>
@@ -137,9 +142,9 @@ export default function Expansao() {
               <h4 style={{ margin: '18px 0 4px' }}>Prazo vencido — decidir agora ({vencidas.length})</h4>
               <p className="small muted" style={{ marginTop: 0 }}>Passaram de {diasParaQueda(db.config)} dias sem compra. Encerre para liberar a região ou mantenha, se houver motivo.</p>
               <div className="timeline">
-                {(todasVencidas ? vencidas : vencidas.slice(0, 6)).map(itemQueda)}
+                {(todasVencidas || foco ? vencidas : vencidas.slice(0, 6)).map(itemQueda)}
               </div>
-              {vencidas.length > 6 && <button className="btn sm ghost" onClick={() => setTodasVencidas(!todasVencidas)}>{todasVencidas ? 'Mostrar menos' : `Ver todas as ${vencidas.length}`}</button>}
+              {vencidas.length > 6 && !foco && <button className="btn sm ghost" onClick={() => setTodasVencidas(!todasVencidas)}>{todasVencidas ? 'Mostrar menos' : `Ver todas as ${vencidas.length}`}</button>}
             </>
           )}
           {recemLiberadas.length > 0 && (
@@ -160,6 +165,8 @@ export default function Expansao() {
           </div>
         </Card>
       </div>
+
+      {foco && <RaioCapital />}
 
       <Card className="mt" title="Mapa de territórios" sub={`${filtered.length} cidades`} right={<Segmented value={view} onChange={setView} options={[{ value: 'mapa', label: 'Por região' }, { value: 'tabela', label: 'Tabela' }]} />}>
         <div className="toolbar">

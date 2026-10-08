@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Cliente, Curva } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, useSearch } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, useSearch, FocoAviso } from '../components/ui'
 import { Cliente360, clienteFields, statusTone, validarRaio } from '../components/Cliente360'
 import { HBars } from '../components/charts'
+import { useFoco } from '../lib/router'
 import { quedasPrevistas, ativacao, curvaABC, debitosPorCliente, faturamento12m, pedidosNoPeriodo, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, int } from '../lib/format'
 import { diffDays, today } from '../lib/dates'
@@ -37,7 +38,9 @@ export default function Carteira() {
     }))
   }, [db, periodo])
 
+  const { ids: foco } = useFoco()
   const filtrados = base.filter((c) =>
+    (!foco || foco.has(c.id)) &&
     (!resp || c.responsavelId === resp) && (!status || c.status === status) && (!curva || c.curva === curva) && (!regiao || c.regiao === regiao) &&
     (!ativ || (ativ === 'sim' ? c.ativoPeriodo : !c.ativoPeriodo && c.status !== 'encerrada')))
   const text = useCallback((c: (typeof base)[number]) => `${c.nome} ${c.responsavelNome} ${c.cidade} ${c.documento} ${c.instagram}`, [])
@@ -73,6 +76,7 @@ export default function Carteira() {
           <button className="btn primary" onClick={() => setEdit(novo())}><IcPlus /> Nova revenda</button>
         </>}
       />
+      <FocoAviso />
 
       <div className="kpi-strip k4">
         <Kpi label="Base ativa (carteira)" value={int(at.base)} foot={<>{quedasPrevistas(db).length} vão cair · {db.clientes.filter((c) => c.status === 'encerrada').length} encerradas</>} />
