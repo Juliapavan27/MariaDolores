@@ -3,7 +3,7 @@ import { Link } from '../lib/router'
 import { useStore } from '../data/store'
 import { Badge, Card, Kpi, Meter, Person } from '../components/ui'
 import { RevenueChart } from '../components/charts'
-import {
+import { quedasPrevistas,
   ativacao, aging, carteira, curvaABC, debitosPorCliente, devolucoesValidas, leadParado, leadsNoPeriodo, metaDoPeriodo,
   pedidosNoPeriodo, serieMensal, somaValor, ultimaCompraMap,
 } from '../lib/metrics'
@@ -35,7 +35,7 @@ export default function Dashboard() {
       .sort((a, b) => safeDiv(b.f, b.m) - safeDiv(a.f, a.m))
 
     const eventos = db.eventos.filter((e) => e.dataInicio >= hoje && e.status !== 'cancelado').sort((a, b) => a.dataInicio.localeCompare(b.dataInicio)).slice(0, 4)
-    const caindo = db.clientes.filter((c) => c.status === 'em_queda' && c.quedaData && c.quedaData >= hoje).sort((a, b) => a.quedaData!.localeCompare(b.quedaData!))
+    const caindo = quedasPrevistas(db, hoje).filter((q) => q.data >= hoje)
 
     const leads = leadsNoPeriodo(db, periodo)
     const ganhos = leads.filter((l) => l.etapa === 'ganho').length
@@ -49,7 +49,7 @@ export default function Dashboard() {
     const add = (tone: 'bad' | 'warn' | 'info', n: number, [um, varios]: [string, string], to: string) => {
       if (n > 0) pend.push({ tone, n, txt: n === 1 ? um : varios, to })
     }
-    add('bad', caindo.filter((c) => c.quedaData! <= addDays(hoje, 15)).length, ['revenda cai nos próximos 15 dias', 'revendas caem nos próximos 15 dias'], '/expansao')
+    add('bad', caindo.filter((q) => q.data <= addDays(hoje, 15)).length, ['revenda cai nos próximos 15 dias', 'revendas caem nos próximos 15 dias'], '/expansao')
     add('bad', recAbertas.filter((r) => r.prioridade === 'alta').length, ['reclamação de prioridade alta em aberto', 'reclamações de prioridade alta em aberto'], '/pos-venda')
     add('warn', carteira(db).filter((c) => abc.get(c.id) === 'A' && diffDays(hoje, ult.get(c.id) || '2000-01-01') > db.config.diasInatividadeAlerta).length, [`revenda curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`, `revendas curva A sem comprar há mais de ${db.config.diasInatividadeAlerta} dias`], '/carteira')
     add('warn', Array.from(deb.values()).filter((v) => v.maiorAtraso > 30).length, ['revenda com débito vencido há mais de 30 dias', 'revendas com débito vencido há mais de 30 dias'], '/financeiro')
@@ -155,16 +155,16 @@ export default function Dashboard() {
         </Card>
         <Card title="Revendas que vão cair" right={<Link to="/expansao">Expansão</Link>}>
           <div className="list">
-            {d.caindo.slice(0, 5).map((c) => {
-              const dias = diffDays(c.quedaData!, today())
+            {d.caindo.slice(0, 5).map(({ cliente: c, data, automatica }) => {
+              const dias = diffDays(data, today())
               return (
                 <div className="list-item" key={c.id}>
                   <div className="grow">
                     <div>{c.nome}</div>
-                    <div className="small muted">{c.cidade}/{c.uf}</div>
+                    <div className="small muted">{c.cidade ? `${c.cidade}/${c.uf}` : 'cidade não informada'}{automatica ? ' · sem compra' : ''}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div className="small">{date(c.quedaData)}</div>
+                    <div className="small">{date(data)}</div>
                     <Badge tone={dias <= 15 ? 'bad' : 'warn'}>em {dias} dias</Badge>
                   </div>
                 </div>

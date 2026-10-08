@@ -4,7 +4,7 @@ import type { Cliente, Curva } from '../data/types'
 import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, useSearch } from '../components/ui'
 import { Cliente360, clienteFields, statusTone, validarRaio } from '../components/Cliente360'
 import { HBars } from '../components/charts'
-import { ativacao, curvaABC, debitosPorCliente, faturamento12m, pedidosNoPeriodo, ultimaCompraMap } from '../lib/metrics'
+import { quedasPrevistas, ativacao, curvaABC, debitosPorCliente, faturamento12m, pedidosNoPeriodo, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, int } from '../lib/format'
 import { diffDays, today } from '../lib/dates'
 import { REGIOES, STATUS_CLIENTE, TIPO_CLIENTE } from '../data/labels'
@@ -75,7 +75,7 @@ export default function Carteira() {
       />
 
       <div className="kpi-strip k4">
-        <Kpi label="Base ativa (carteira)" value={int(at.base)} foot={<>{db.clientes.filter((c) => c.status === 'em_queda').length} vão cair · {db.clientes.filter((c) => c.status === 'encerrada').length} encerradas</>} />
+        <Kpi label="Base ativa (carteira)" value={int(at.base)} foot={<>{quedasPrevistas(db).length} vão cair · {db.clientes.filter((c) => c.status === 'encerrada').length} encerradas</>} />
         <Kpi label="Ativação no período" value={pct(at.taxa)} foot={<>{at.ativos} compraram · meta {pct(db.config.metaAtivacao)}</>}><Meter value={at.taxa} target={db.config.metaAtivacao} /></Kpi>
         <Kpi label={`Sem compra há +${db.config.diasInatividadeAlerta} dias`} value={int(base.filter((c) => c.status !== 'encerrada' && c.diasSemCompra > db.config.diasInatividadeAlerta).length)} foot="risco de churn — priorizar contato" />
         <Kpi label="Aniversariantes do mês" value={int(aniversariantes.length)} foot={aniversariantes.slice(0, 3).map((c) => c.nome).join(', ') || '—'} />

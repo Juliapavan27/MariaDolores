@@ -40,6 +40,8 @@ export interface Cliente {
   // Revenda que vai "cair" (encerramento previsto)
   quedaData?: string
   quedaMotivo?: string
+  /** Mantida apesar de estar sem compra: não entra na queda automática até esta data. */
+  quedaDispensadaAte?: string
   observacoes?: string
   /** Endereço da loja (referência para o raio de atuação). */
   endereco?: string
@@ -266,6 +268,8 @@ export interface Configuracoes {
   divisaoMeta: number // fração do investimento para Meta (0.5)
   diasInatividadeAlerta: number
   raioExclusividadeKm: number
+  /** Dias sem compra para a revenda perder a exclusividade (queda automática). */
+  diasSemCompraQueda?: number
   colecaoAtual: string
   // Raio de atuação em SP capital, revisto pelas compras dos últimos meses fechados
   raioCapitalCheioKm?: number

@@ -1,8 +1,8 @@
-import type { Cliente, Curva, Database, Lead, Pedido, Titulo } from '../data/types'
+import type { Cliente, Configuracoes, Curva, Database, Lead, Pedido, Titulo } from '../data/types'
 import { addDays, addMonths, diffDays, inRange, mesesNoPeriodo, monthsBetween, startOfMonth, today, ym, type Periodo } from './dates'
 import { CIDADES_ALVO } from '../data/seed'
 import { ehCapitalSP, regiaoPorUF } from '../data/labels'
-import { safeDiv } from './format'
+import { date, safeDiv } from './format'
 
 export const pedidosValidos = (pedidos: Pedido[]) => pedidos.filter((p) => p.status === 'faturado')
 
@@ -124,6 +124,52 @@ export function serieMensal(db: Database, meses = 12, colaboradorId?: string) {
   return keys.map((k) => ({ mes: k, faturamento: fat.get(k)!, devolucoes: dev.get(k)!, meta: metaMensal }))
 }
 
+// ---------- Revendas que vão cair ----------
+export interface QuedaPrevista {
+  cliente: Cliente
+  /** Data em que a região fica livre. */
+  data: string
+  motivo: string
+  /** true: prevista pela regra de dias sem compra; false: marcada pela equipe. */
+  automatica: boolean
+  diasSemCompra?: number
+}
+
+export const diasParaQueda = (c: Configuracoes) => c.diasSemCompraQueda ?? 180
+/** Antecedência com que a queda automática aparece. */
+const AVISO_QUEDA_DIAS = 90
+
+/**
+ * Revendas que vão cair: as marcadas pela equipe ("vai cair", com data) e as que estão há muito tempo
+ * sem comprar. Pela regra, a revenda perde a exclusividade quando completa N dias sem compra
+ * (Configurações) e aparece aqui 90 dias antes disso.
+ */
+export function quedasPrevistas(db: Database, hoje = today()): QuedaPrevista[] {
+  const limite = diasParaQueda(db.config)
+  const ult = ultimaCompraMap(db)
+  const lista: QuedaPrevista[] = []
+  db.clientes.forEach((c) => {
+    if (c.status === 'em_queda') {
+      lista.push({ cliente: c, data: c.quedaData || hoje, motivo: c.quedaMotivo || 'Marcada pela equipe', automatica: false })
+      return
+    }
+    if (c.status !== 'ativa' || (c.quedaDispensadaAte && c.quedaDispensadaAte >= hoje)) return
+    const ultima = ult.get(c.id)
+    const base = ultima || c.dataCadastro
+    if (!base) return
+    const dias = diffDays(hoje, base)
+    if (dias <= Math.max(0, limite - AVISO_QUEDA_DIAS)) return
+    lista.push({
+      cliente: c,
+      data: addDays(base, limite),
+      motivo: ultima ? `Sem compra desde ${date(ultima)} (${dias} dias)` : `Nenhuma compra desde o cadastro (${dias} dias)`,
+      automatica: true,
+      diasSemCompra: dias,
+    })
+  })
+  return lista.sort((a, b) => a.data.localeCompare(b.data))
+}
+
 // ---------- Territórios ----------
 /** `por_raio`: São Paulo capital, onde a exclusividade é pelo raio em volta do endereço da revenda. */
 export type StatusTerritorio = 'ocupada' | 'vai_liberar' | 'disponivel' | 'bloqueada' | 'reservada' | 'prioritaria' | 'por_raio'
@@ -160,16 +206,18 @@ export function territorios(db: Database): LinhaTerritorio[] {
     else garantir(l.cidade, l.uf, regiaoPorUF(l.cidade, l.uf)).leadsAbertos++
   })
 
+  const previstas = new Map(quedasPrevistas(db, hoje).map((q) => [q.cliente.id, q]))
   linhas.forEach((linha) => {
+    // queda marcada com data já passada: a região está livre; queda automática vencida espera a equipe confirmar
     const vigentes = linha.revendas.filter((c) => c.status === 'ativa' || (c.status === 'em_queda' && (!c.quedaData || c.quedaData > hoje)))
-    const firmes = vigentes.filter((c) => c.status === 'ativa')
-    const caindo = vigentes.filter((c) => c.status === 'em_queda')
+    const firmes = vigentes.filter((c) => !previstas.has(c.id))
+    const caindo = vigentes.filter((c) => previstas.has(c.id))
     if (ehCapitalSP(linha.cidade, linha.uf)) linha.status = 'por_raio'
     else if (firmes.length) linha.status = 'ocupada'
     else if (caindo.length) {
       linha.status = 'vai_liberar'
-      linha.liberaEm = caindo.map((c) => c.quedaData || '').sort().reverse()[0]
-      linha.motivo = caindo.map((c) => c.quedaMotivo).filter(Boolean).join('; ')
+      linha.liberaEm = caindo.map((c) => previstas.get(c.id)!.data).sort().reverse()[0]
+      linha.motivo = caindo.map((c) => previstas.get(c.id)!.motivo).join('; ')
     } else linha.status = 'disponivel'
 
     const bloqueio = db.territorios.find((t) => chaveCidade(t.cidade, t.uf) === linha.chave && (!t.ate || t.ate >= hoje))

@@ -3,6 +3,7 @@ import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from './
 import { StoreProvider, useStore } from './data/store'
 import { PRESETS, type PresetPeriodo, today, addDays } from './lib/dates'
 import { date, MESES_LONGOS } from './lib/format'
+import { quedasPrevistas } from './lib/metrics'
 
 const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
 const hojeExtenso = () => {
@@ -37,7 +38,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
     const hoje = today()
     return {
       reclamacoes: db.reclamacoes.filter((r) => r.status !== 'resolvida').length + db.devolucoes.filter((d) => d.status === 'solicitada' || d.status === 'em_analise').length,
-      expansao: db.clientes.filter((c) => c.status === 'em_queda' && c.quedaData && c.quedaData >= hoje && c.quedaData <= addDays(hoje, 30)).length,
+      expansao: quedasPrevistas(db, hoje).filter((q) => q.data >= hoje && q.data <= addDays(hoje, 30)).length,
       leads: db.leads.filter((l) => l.etapa === 'novo').length,
     }
   }, [db])

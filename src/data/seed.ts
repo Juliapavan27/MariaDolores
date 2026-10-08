@@ -26,6 +26,7 @@ export const DEFAULT_CONFIG: Database['config'] = {
   divisaoMeta: 0.5,
   diasInatividadeAlerta: 60,
   raioExclusividadeKm: 15,
+  diasSemCompraQueda: 180,
   colecaoAtual: 'Verão 27 — Sol de Dolores',
   raioCapitalCheioKm: 3,
   raioCapitalMedioKm: 1.5,
