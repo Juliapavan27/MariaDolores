@@ -300,6 +300,23 @@ export interface Atendimento {
   proximoPasso?: string
 }
 
+/**
+ * Fechamento mensal do BI por vendedora (painel "Atacado Maria Dolores"): faturamento líquido pela
+ * vendedora da venda, meta e ativação. Nos meses com fechamento, os números por pessoa vêm daqui.
+ */
+export interface Fechamento {
+  id: string
+  colaboradorId: string
+  mes: string // AAAA-MM
+  faturamento: number
+  meta: number
+  baseAbertura: number
+  meta70: number
+  realizado: number
+  /** De onde veio e quando (ex.: "Print do BI em 08/10/2026"). */
+  fonte?: string
+}
+
 export interface Database {
   config: Configuracoes
   colaboradores: Colaborador[]
@@ -318,6 +335,7 @@ export interface Database {
   visitas: Visita[]
   tarefas: Tarefa[]
   atendimentos: Atendimento[]
+  fechamentos: Fechamento[]
 }
 
 export type Colecao = Exclude<keyof Database, 'config'>

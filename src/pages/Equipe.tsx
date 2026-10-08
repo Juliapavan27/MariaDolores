@@ -4,7 +4,7 @@ import type { Colaborador } from '../data/types'
 import { Avatar, Badge, Card, DataTable, FormModal, Meter, PageHead, Segmented, StatRow, opts, type Field } from '../components/ui'
 import { RevenueChart } from '../components/charts'
 import { indicadoresCarteira } from '../lib/carteira'
-import { ativacao, carteira, curvaABC, debitosPorCliente, devolucoesValidas, leadsNoPeriodo, metaPessoa, metasParaTexto, pedidosNoPeriodo, textoParaMetas, serieMensal, somaValor, ultimaCompraMap } from '../lib/metrics'
+import { ativacao, carteira, faturamentoBI, curvaABC, debitosPorCliente, devolucoesValidas, leadsNoPeriodo, metaPessoa, metasParaTexto, pedidosNoPeriodo, textoParaMetas, serieMensal, somaValor, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
 import { diffDays, inRange, today } from '../lib/dates'
 import { CARGO, REGIOES } from '../data/labels'
@@ -34,7 +34,7 @@ export default function Equipe() {
       .filter((c) => filtro === 'todos' || c.cargo === filtro)
       .map((c) => {
         const ped = pedidosNoPeriodo(db, periodo, c.id)
-        const fat = somaValor(ped)
+        const fat = faturamentoBI(db, periodo, c.id)
         const meta = metaPessoa(c, periodo)
         const at = ativacao(db, periodo, c.id)
         const cart = carteira(db, c.id)
@@ -136,6 +136,7 @@ function Detalhe({ colaboradorId }: { colaboradorId: string }) {
     const abc = curvaABC(db)
     return ativacao(db, periodo, colaboradorId).inativos.map((cl) => ({ ...cl, ultima: ult.get(cl.id), curva: abc.get(cl.id) || 'C' }))
   }, [db, periodo, colaboradorId])
+  const fechamentos = useMemo(() => (db.fechamentos || []).filter((f) => f.colaboradorId === colaboradorId), [db.fechamentos, colaboradorId])
   return (
     <div className="grid g-2 mt-lg">
       <Card title={`Faturamento x meta — ${c.nome}`} sub="últimos 12 meses">
@@ -154,6 +155,19 @@ function Detalhe({ colaboradorId }: { colaboradorId: string }) {
           empty="Toda a carteira já comprou no período. 🎉"
         />
       </Card>
+      {fechamentos.length > 0 && (
+        <Card className="full" title={`Fechamento mensal do BI — ${c.nome}`} sub="faturamento pela vendedora da venda, meta e ativação, como no painel do BI">
+          <DataTable rows={fechamentos} pageSize={12} initialSort={{ key: 'mes', dir: -1 }} columns={[
+            { key: 'mes', label: 'Mês', value: (f) => f.mes, render: (f) => `${f.mes.slice(5, 7)}/${f.mes.slice(0, 4)}` },
+            { key: 'fat', label: 'Faturamento', num: true, value: (f) => f.faturamento, render: (f) => money(f.faturamento) },
+            { key: 'meta', label: 'Meta', num: true, value: (f) => f.meta, render: (f) => money(f.meta) },
+            { key: 'ating', label: 'Atingimento', num: true, value: (f) => safeDiv(f.faturamento, f.meta), render: (f) => f.meta ? <Badge tone={f.faturamento >= f.meta ? 'good' : 'bad'}>{pct(safeDiv(f.faturamento, f.meta))}</Badge> : '—' },
+            { key: 'base', label: 'Base abertura', num: true, value: (f) => f.baseAbertura },
+            { key: 'm70', label: 'Meta 70%', num: true, value: (f) => f.meta70 },
+            { key: 'real', label: 'Realizado', num: true, value: (f) => f.realizado, render: (f) => <Badge tone={f.realizado >= f.meta70 ? 'good' : 'bad'}>{f.realizado}</Badge> },
+          ]} />
+        </Card>
+      )}
     </div>
   )
 }
@@ -164,7 +178,7 @@ function Matriz() {
   // período em andamento: compara com o ritmo esperado até hoje, não com a meta cheia
   const ritmo = periodo.fim > today() ? safeDiv(diffDays(today(), periodo.inicio) + 1, diffDays(periodo.fim, periodo.inicio) + 1) : 1
   const pessoas = useMemo(() => db.colaboradores.filter((c) => c.cargo !== 'analista' && c.ativo).map((c) => {
-    const fat = somaValor(pedidosNoPeriodo(db, periodo, c.id))
+    const fat = faturamentoBI(db, periodo, c.id)
     const ating = safeDiv(fat, metaPessoa(c, periodo) * ritmo)
     const at = ativacao(db, periodo, c.id)
     const ind = indicadoresCarteira(db, periodo, c.id)

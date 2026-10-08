@@ -89,6 +89,8 @@ export function aplicarFiltros(db: Database, f: Filtros): Database {
     visitas: daEquipe(doCliente(db.visitas)),
     tarefas: daEquipe(db.tarefas),
     leads: daEquipe(db.leads).filter((l) => noLocal(f.regiao || '', l.cidade, l.uf, regiaoPorUF(l.cidade, l.uf))),
+    // o fechamento do BI é por vendedora: não dá para recortar por região
+    fechamentos: f.regiao ? [] : equipe ? (db.fechamentos || []).filter((x) => equipe.has(x.colaboradorId)) : db.fechamentos,
     territorios: db.territorios.filter((t) => noLocal(f.regiao || '', t.cidade, t.uf, t.regiao)),
   }
 }

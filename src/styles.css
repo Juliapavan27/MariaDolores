@@ -576,3 +576,4 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .vazio-tela .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
 .faixa.exemplos { background: var(--rose-wash); }
 #topo { display: block; scroll-margin-top: 120px; }
+.grid > .card.full { grid-column: 1 / -1; }

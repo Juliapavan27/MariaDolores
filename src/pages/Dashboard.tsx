@@ -3,7 +3,7 @@ import { Link } from '../lib/router'
 import { useStore } from '../data/store'
 import { Badge, Card, Kpi, Meter, Person } from '../components/ui'
 import { RevenueChart } from '../components/charts'
-import { metaPessoa, metaShowroom, quedasPrevistas,
+import { faturamentoBI, mesesComFechamento, metaPessoa, metaShowroom, quedasPrevistas,
   ativacao, aging, carteira, curvaABC, debitosPorCliente, devolucoesValidas, leadParado, leadsNoPeriodo, metaDoPeriodo,
   pedidosNoPeriodo, serieMensal, somaValor, ultimaCompraMap,
 } from '../lib/metrics'
@@ -23,7 +23,7 @@ export default function Dashboard() {
   const d = useMemo(() => {
     const hoje = today()
     const ped = pedidosNoPeriodo(db, periodo)
-    const fat = somaValor(ped)
+    const fat = faturamentoBI(db, periodo)
     const meta = metaShowroom(db, periodo)
     const at = ativacao(db, periodo)
     const dev = somaValor(devolucoesValidas(db).filter((x) => inRange(x.data, periodo)))
@@ -31,7 +31,7 @@ export default function Dashboard() {
     const vencido = Object.values(aging(db.titulos)).reduce((s, v) => s + v, 0)
     const equipe = db.colaboradores
       .filter((c) => c.cargo !== 'analista' && c.ativo)
-      .map((c) => ({ c, f: somaValor(pedidosNoPeriodo(db, periodo, c.id)), m: metaPessoa(c, periodo), a: ativacao(db, periodo, c.id) }))
+      .map((c) => ({ c, f: faturamentoBI(db, periodo, c.id), m: metaPessoa(c, periodo), a: ativacao(db, periodo, c.id) }))
       .sort((a, b) => safeDiv(b.f, b.m) - safeDiv(a.f, a.m))
 
     const eventos = db.eventos.filter((e) => e.dataInicio >= hoje && e.status !== 'cancelado').sort((a, b) => a.dataInicio.localeCompare(b.dataInicio)).slice(0, 4)
@@ -88,7 +88,7 @@ export default function Dashboard() {
       {(!db.colaboradores.length || !db.clientes.length) && <ComeceAqui />}
 
       <div className="kpi-strip k5">
-        <Kpi label="Faturamento" value={money(d.fat)} foot={<>meta {money(d.meta)}</>}>
+        <Kpi label="Faturamento líquido" value={money(d.fat)} foot={<>meta {money(d.meta)}{mesesComFechamento(db, periodo).length ? ' · fechamento do BI' : ''}</>}>
           <Meter value={safeDiv(d.fat, d.meta)} target={1} />
         </Kpi>
         <Kpi label="Ativação da base" value={pct(d.at.taxa)} foot={<>{d.at.ativos} de {d.at.base} revendas · meta {pct(metaAt)}</>}>

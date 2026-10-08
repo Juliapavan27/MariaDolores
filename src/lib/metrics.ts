@@ -1,5 +1,5 @@
-import type { Cliente, Colaborador, Configuracoes, Curva, Database, Lead, Pedido, Titulo } from '../data/types'
-import { addDays, addMonths, diffDays, inRange, mesesNoPeriodo, monthsBetween, startOfMonth, today, ym, type Periodo } from './dates'
+import type { Cliente, Colaborador, Configuracoes, Curva, Database, Fechamento, Lead, Pedido, Titulo } from '../data/types'
+import { addDays, addMonths, diffDays, endOfMonth, inRange, mesesNoPeriodo, monthsBetween, startOfMonth, today, ym, type Periodo } from './dates'
 import { CIDADES_ALVO } from '../data/seed'
 import { ehCapitalSP, regiaoPorUF } from '../data/labels'
 import { date, safeDiv } from './format'
@@ -21,7 +21,54 @@ export function ativacao(db: Database, p: Periodo, colaboradorId?: string) {
   const base = carteira(db, colaboradorId)
   const compraram = new Set(pedidosNoPeriodo(db, p).map((x) => x.clienteId))
   const ativos = base.filter((c) => compraram.has(c.id))
-  return { base: base.length, ativos: ativos.length, taxa: safeDiv(ativos.length, base.length), inativos: base.filter((c) => !compraram.has(c.id)) }
+  const inativos = base.filter((c) => !compraram.has(c.id))
+  // mês com fechamento do BI: base de abertura e "realizado" oficiais da vendedora
+  const meses = monthsBetween(p.inicio, p.fim)
+  const fech = meses.length === 1 && mesInteiro(meses[0], p) ? mapaFechamentos(db).get(meses[0]) : undefined
+  if (fech) {
+    const doMes = colaboradorId ? [fech.get(colaboradorId)].filter(Boolean) as Fechamento[] : db.colaboradores.map((c) => fech.get(c.id)).filter(Boolean) as Fechamento[]
+    const b = doMes.reduce((s, f) => s + f.baseAbertura, 0)
+    const a = doMes.reduce((s, f) => s + f.realizado, 0)
+    return { base: b, ativos: a, taxa: safeDiv(a, b), inativos, fonteBI: true }
+  }
+  return { base: base.length, ativos: ativos.length, taxa: safeDiv(ativos.length, base.length), inativos, fonteBI: false }
+}
+
+// ---------- Fechamento mensal do BI ----------
+const mesInteiro = (mes: string, p: Periodo) => `${mes}-01` >= p.inicio && endOfMonth(`${mes}-01`) <= p.fim
+
+/** mês → (pessoa → fechamento) */
+export function mapaFechamentos(db: Database) {
+  const m = new Map<string, Map<string, Fechamento>>()
+  ;(db.fechamentos || []).forEach((f) => {
+    if (!m.has(f.mes)) m.set(f.mes, new Map())
+    m.get(f.mes)!.set(f.colaboradorId, f)
+  })
+  return m
+}
+
+/**
+ * Faturamento líquido como o BI mostra. Nos meses com fechamento, vale o fechamento (pela vendedora
+ * que fez a venda); nos demais, pedidos faturados menos devoluções. Sem pessoa, soma a equipe da base.
+ */
+export function faturamentoBI(db: Database, p: Periodo, colaboradorId?: string) {
+  const fechamentos = mapaFechamentos(db)
+  const dono = new Map(db.clientes.map((c) => [c.id, c.responsavelId]))
+  const pedidos = pedidosNoPeriodo(db, p, colaboradorId)
+  const devs = devolucoesValidas(db).filter((d) => inRange(d.data, p) && (!colaboradorId || dono.get(d.clienteId) === colaboradorId))
+  return monthsBetween(p.inicio, p.fim).reduce((total, mes) => {
+    const fech = fechamentos.get(mes)
+    if (fech && mesInteiro(mes, p)) {
+      return total + (colaboradorId ? fech.get(colaboradorId)?.faturamento || 0 : db.colaboradores.reduce((s, c) => s + (fech.get(c.id)?.faturamento || 0), 0))
+    }
+    return total + somaValor(pedidos.filter((x) => ym(x.data) === mes)) - somaValor(devs.filter((x) => ym(x.data) === mes))
+  }, 0)
+}
+
+/** Meses do período cobertos pelo fechamento do BI (para avisar na tela de onde vem o número). */
+export const mesesComFechamento = (db: Database, p: Periodo) => {
+  const f = mapaFechamentos(db)
+  return monthsBetween(p.inicio, p.fim).filter((m) => f.has(m) && mesInteiro(m, p))
 }
 
 /** Meta do período: soma mês a mês, usando a meta específica do mês quando existe. */
@@ -138,6 +185,14 @@ export function serieMensal(db: Database, meses = 12, colaboradorId?: string) {
   devolucoesValidas(db).forEach((d) => {
     const k = ym(d.data)
     if (dev.has(k)) dev.set(k, dev.get(k)! + d.valor)
+  })
+  // meses com fechamento do BI: o líquido oficial (por vendedora da venda), sem devoluções à parte
+  const fechamentos = mapaFechamentos(db)
+  keys.forEach((k) => {
+    const f = fechamentos.get(k)
+    if (!f) return
+    fat.set(k, colaboradorId ? f.get(colaboradorId)?.faturamento || 0 : db.colaboradores.reduce((s, c) => s + (f.get(c.id)?.faturamento || 0), 0))
+    dev.set(k, 0)
   })
   const pessoa = colaboradorId ? db.colaboradores.find((c) => c.id === colaboradorId) : undefined
   const meta = (k: string) => colaboradorId ? metaDoMes(pessoa?.metaMensal || 0, pessoa?.metasMes, k) : metaDoMes(db.config.metaFaturamentoMensal, db.config.metasMes, k)

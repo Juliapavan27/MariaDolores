@@ -6,7 +6,7 @@ import { Badge, Card, DataTable, Kpi, PageHead, Person, FocoAviso } from '../com
 import { Cliente360 } from '../components/Cliente360'
 import { AtendimentoForm, novoAtendimento } from '../components/AtendimentoForm'
 import { GRUPOS, ORDEM_GRUPOS, indicadoresCarteira, lerCarteira, ordemDaSemana, type Grupo } from '../lib/carteira'
-import { ativacao, metaPessoa, metaShowroom, pedidosNoPeriodo, somaValor } from '../lib/metrics'
+import { ativacao, faturamentoBI, metaPessoa, metaShowroom } from '../lib/metrics'
 import { date, money, pct, int, safeDiv } from '../lib/format'
 
 const TOM: Record<Grupo, 'good' | 'gold' | 'warn' | 'bad' | 'info'> = { recorrente: 'good', potencial: 'gold', risco: 'warn', inativa: 'bad', nova: 'info' }
@@ -31,7 +31,7 @@ export default function PlanoSemana() {
   const contagem = useMemo(() => Object.fromEntries(ORDEM_GRUPOS.map((g) => [g, linhas.filter((l) => l.grupo === g)])) as Record<Grupo, typeof linhas>, [linhas])
 
   const at = ativacao(db, periodo, quem || undefined)
-  const fat = somaValor(pedidosNoPeriodo(db, periodo, quem || undefined))
+  const fat = faturamentoBI(db, periodo, quem || undefined)
   const pessoa = quem ? db.colaboradores.find((c) => c.id === quem) : undefined
   const meta = quem ? (pessoa ? metaPessoa(pessoa, periodo) : 0) : metaShowroom(db, periodo)
   const g = GRUPOS[grupo]

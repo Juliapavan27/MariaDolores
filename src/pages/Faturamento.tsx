@@ -3,7 +3,7 @@ import { newId, useStore } from '../data/store'
 import type { Pedido } from '../data/types'
 import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, opts, useSearch } from '../components/ui'
 import { HBars, RevenueChart, useChartColors } from '../components/charts'
-import { devolucoesValidas, metaShowroom, pedidosNoPeriodo, serieMensal, somaValor } from '../lib/metrics'
+import { devolucoesValidas, faturamentoBI, mesesComFechamento, metaShowroom, pedidosNoPeriodo, serieMensal, somaValor } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
 import { addDays, inRange, today } from '../lib/dates'
 import { CANAL, STATUS_PEDIDO } from '../data/labels'
@@ -36,7 +36,10 @@ export default function Faturamento() {
       pecas: ped.reduce((s, p) => s + p.pecas, 0),
       porCanal: agrupa((p) => CANAL[p.canal]),
       porColecao: agrupa((p) => p.colecao),
-      porPessoa: agrupa((p) => db.colaboradores.find((c) => c.id === p.responsavelId)?.nome || '—'),
+      // por pessoa: como o BI (vendedora da venda), usando o fechamento nos meses que têm
+      porPessoa: db.colaboradores.map((c) => [c.nome, faturamentoBI(db, periodo, c.id)] as [string, number]).filter(([, v]) => v !== 0).sort((a, b) => b[1] - a[1]),
+      liquido: faturamentoBI(db, periodo),
+      fechados: mesesComFechamento(db, periodo).length,
       serie: serieMensal(db, 12),
     }
   }, [db, periodo])
@@ -72,9 +75,11 @@ export default function Faturamento() {
         </>}
       />
       <div className="kpi-strip k5">
-        <Kpi label="Faturamento bruto" value={money(d.bruto)} foot={<>{pct(safeDiv(d.bruto, d.meta))} da meta de {money(d.meta)}</>}><Meter value={safeDiv(d.bruto, d.meta)} /></Kpi>
+        {d.fechados
+          ? <Kpi label="Faturamento bruto" value={money(d.bruto)} foot={<>pedidos da carteira · o líquido do BI faz {pct(safeDiv(d.liquido, d.meta))} da meta de {money(d.meta)}</>}><Meter value={safeDiv(d.liquido, d.meta)} /></Kpi>
+          : <Kpi label="Faturamento bruto" value={money(d.bruto)} foot={<>{pct(safeDiv(d.bruto, d.meta))} da meta de {money(d.meta)}</>}><Meter value={safeDiv(d.bruto, d.meta)} /></Kpi>}
         <Kpi label="Devoluções" value={money(d.dev)} foot={`${pct(safeDiv(d.dev, d.bruto), 1)} do bruto`} />
-        <Kpi label="Faturamento líquido" value={money(d.bruto - d.dev)} foot="bruto − devoluções aprovadas" />
+        <Kpi label="Faturamento líquido" value={money(d.liquido)} foot={d.fechados ? 'fechamento do BI nos meses fechados' : 'bruto − devoluções aprovadas'} />
         <Kpi label="Ticket médio" value={money(safeDiv(d.bruto, d.ped.length))} foot={`${int(d.ped.length)} pedidos · ${int(d.pecas)} peças`} />
         <Kpi label="Pedidos pendentes" value={money(somaValor(d.pend))} foot={`${d.pend.length} aguardando faturamento`} />
       </div>

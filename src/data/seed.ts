@@ -576,13 +576,13 @@ export function buildSeed(): Database {
   return {
     config: { ...DEFAULT_CONFIG },
     colaboradores, clientes, pedidos, devolucoes, reclamacoes, titulos, brindes, movBrindes, eventos,
-    leads, campanhas, criativos, territorios, visitas, tarefas, atendimentos,
+    leads, campanhas, criativos, territorios, visitas, tarefas, atendimentos, fechamentos: [],
   }
 }
 
 export function emptyDatabase(): Database {
   return {
     config: { ...DEFAULT_CONFIG }, colaboradores: [], clientes: [], pedidos: [], devolucoes: [], reclamacoes: [], titulos: [],
-    brindes: [], movBrindes: [], eventos: [], leads: [], campanhas: [], criativos: [], territorios: [], visitas: [], tarefas: [], atendimentos: [],
+    brindes: [], movBrindes: [], eventos: [], leads: [], campanhas: [], criativos: [], territorios: [], visitas: [], tarefas: [], atendimentos: [], fechamentos: [],
   }
 }
