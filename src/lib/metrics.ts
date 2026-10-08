@@ -1,7 +1,7 @@
 import type { Cliente, Curva, Database, Lead, Pedido, Titulo } from '../data/types'
 import { addDays, addMonths, diffDays, inRange, mesesNoPeriodo, monthsBetween, startOfMonth, today, ym, type Periodo } from './dates'
 import { CIDADES_ALVO } from '../data/seed'
-import { regiaoPorUF } from '../data/labels'
+import { ehCapitalSP, regiaoPorUF } from '../data/labels'
 import { safeDiv } from './format'
 
 export const pedidosValidos = (pedidos: Pedido[]) => pedidos.filter((p) => p.status === 'faturado')
@@ -125,7 +125,8 @@ export function serieMensal(db: Database, meses = 12, colaboradorId?: string) {
 }
 
 // ---------- Territórios ----------
-export type StatusTerritorio = 'ocupada' | 'vai_liberar' | 'disponivel' | 'bloqueada' | 'reservada' | 'prioritaria'
+/** `por_raio`: São Paulo capital, onde a exclusividade é pelo raio em volta do endereço da revenda. */
+export type StatusTerritorio = 'ocupada' | 'vai_liberar' | 'disponivel' | 'bloqueada' | 'reservada' | 'prioritaria' | 'por_raio'
 
 export interface LinhaTerritorio {
   chave: string
@@ -163,7 +164,8 @@ export function territorios(db: Database): LinhaTerritorio[] {
     const vigentes = linha.revendas.filter((c) => c.status === 'ativa' || (c.status === 'em_queda' && (!c.quedaData || c.quedaData > hoje)))
     const firmes = vigentes.filter((c) => c.status === 'ativa')
     const caindo = vigentes.filter((c) => c.status === 'em_queda')
-    if (firmes.length) linha.status = 'ocupada'
+    if (ehCapitalSP(linha.cidade, linha.uf)) linha.status = 'por_raio'
+    else if (firmes.length) linha.status = 'ocupada'
     else if (caindo.length) {
       linha.status = 'vai_liberar'
       linha.liberaEm = caindo.map((c) => c.quedaData || '').sort().reverse()[0]

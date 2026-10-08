@@ -41,6 +41,10 @@ export interface Cliente {
   quedaData?: string
   quedaMotivo?: string
   observacoes?: string
+  /** Endereço da loja (referência para o raio de atuação). */
+  endereco?: string
+  /** Localização "lat, lng" ou link do Google Maps — base do raio de atuação na capital. */
+  localizacao?: string
   /** Data exata da última compra vinda do BI (os pedidos importados do BI são mensais). */
   ultimaCompraBI?: string
   // Ficha da revendedora (para ninguém chegar ao showroom sem ser conhecida)
@@ -184,6 +188,9 @@ export interface Lead {
   valorPotencial: number
   motivoPerda?: string
   rdStationId?: string
+  endereco?: string
+  /** Localização "lat, lng" ou link do Google Maps (verificação do raio na capital). */
+  localizacao?: string
 }
 
 export type Plataforma = 'meta' | 'google'
@@ -260,6 +267,13 @@ export interface Configuracoes {
   diasInatividadeAlerta: number
   raioExclusividadeKm: number
   colecaoAtual: string
+  // Raio de atuação em SP capital, revisto pelas compras dos últimos meses fechados
+  raioCapitalCheioKm?: number
+  raioCapitalMedioKm?: number
+  raioCapitalMinimoKm?: number
+  raioCapitalLimiteMedio?: number
+  raioCapitalLimiteCheio?: number
+  raioCapitalMeses?: number
 }
 
 export type TipoAtendimento = 'showroom' | 'whatsapp' | 'ligacao' | 'visita_rep' | 'evento' | 'email'

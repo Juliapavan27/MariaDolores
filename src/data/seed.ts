@@ -27,6 +27,44 @@ export const DEFAULT_CONFIG: Database['config'] = {
   diasInatividadeAlerta: 60,
   raioExclusividadeKm: 15,
   colecaoAtual: 'Verão 27 — Sol de Dolores',
+  raioCapitalCheioKm: 3,
+  raioCapitalMedioKm: 1.5,
+  raioCapitalMinimoKm: 1,
+  raioCapitalLimiteMedio: 10000,
+  raioCapitalLimiteCheio: 15000,
+  raioCapitalMeses: 3,
+}
+
+/** Ponto aproximado de cada bairro da capital (para a demonstração do raio de atuação). */
+const PONTO_BAIRRO: Record<string, [number, number]> = {
+  'São Paulo — Aclimação': [-23.5718, -46.6305],
+  'São Paulo — Anália Franco': [-23.5615, -46.5636],
+  'São Paulo — Bela Vista': [-23.5614, -46.6475],
+  'São Paulo — Brooklin': [-23.6128, -46.689],
+  'São Paulo — Butantã': [-23.5717, -46.7086],
+  'São Paulo — Campo Belo': [-23.6221, -46.6681],
+  'São Paulo — Casa Verde': [-23.5063, -46.6566],
+  'São Paulo — Higienópolis': [-23.5446, -46.6563],
+  'São Paulo — Ipiranga': [-23.5893, -46.6072],
+  'São Paulo — Itaim Bibi': [-23.5852, -46.6762],
+  'São Paulo — Jardins': [-23.5672, -46.664],
+  'São Paulo — Lapa': [-23.5222, -46.7041],
+  'São Paulo — Moema': [-23.6008, -46.665],
+  'São Paulo — Mooca': [-23.5587, -46.5986],
+  'São Paulo — Morumbi': [-23.6012, -46.7203],
+  'São Paulo — Penha': [-23.5272, -46.5434],
+  'São Paulo — Perdizes': [-23.5369, -46.6774],
+  'São Paulo — Pinheiros': [-23.5662, -46.6919],
+  'São Paulo — Santana': [-23.5026, -46.6253],
+  'São Paulo — Santo Amaro': [-23.6544, -46.711],
+  'São Paulo — Saúde': [-23.6181, -46.637],
+  'São Paulo — Tatuapé': [-23.5404, -46.5764],
+  'São Paulo — Tucuruvi': [-23.4802, -46.6034],
+  'São Paulo — Vila Guilherme': [-23.5107, -46.6061],
+  'São Paulo — Vila Leopoldina': [-23.5284, -46.7312],
+  'São Paulo — Vila Madalena': [-23.5561, -46.6902],
+  'São Paulo — Vila Mariana': [-23.5893, -46.6343],
+  'São Paulo — Vila Prudente': [-23.5843, -46.5821],
 }
 
 const CIDADES: [string, string, string][] = [
@@ -219,6 +257,9 @@ export function buildSeed(): Database {
         dataCadastro: cadastro,
         aniversario: `${String(intBetween(1, 12)).padStart(2, '0')}-${String(intBetween(1, 28)).padStart(2, '0')}`,
         limiteCredito: pick([5000, 8000, 10000, 15000, 20000, 30000]),
+        localizacao: PONTO_BAIRRO[cidade]
+          ? `${(PONTO_BAIRRO[cidade][0] + between(-0.004, 0.004)).toFixed(5)}, ${(PONTO_BAIRRO[cidade][1] + between(-0.004, 0.004)).toFixed(5)}`
+          : undefined,
       })
       propensao[cid] = r() < 0.2 ? between(0.05, 0.18) : between(0.28, 0.85)
       ticket[cid] = between(1800, r() < 0.2 ? 14000 : 7000)
@@ -467,6 +508,9 @@ export function buildSeed(): Database {
       valorPotencial: pick([2500, 3500, 5000, 8000, 12000]),
       motivoPerda: etapa === 'perdido' ? pick(['Região indisponível (exclusividade)', 'Sem capital para pedido mínimo', 'Sem retorno', 'Preferiu concorrente', 'Pessoa física sem CNPJ']) : undefined,
       rdStationId: origem !== 'prospeccao' ? `rd-${intBetween(100000, 999999)}` : undefined,
+      localizacao: PONTO_BAIRRO[cidade]
+        ? `${(PONTO_BAIRRO[cidade][0] + between(-0.03, 0.03)).toFixed(5)}, ${(PONTO_BAIRRO[cidade][1] + between(-0.03, 0.03)).toFixed(5)}`
+        : undefined,
     })
   }
 

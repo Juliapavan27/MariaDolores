@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Cliente, Curva } from '../data/types'
 import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, useSearch } from '../components/ui'
-import { Cliente360, clienteFields, statusTone } from '../components/Cliente360'
+import { Cliente360, clienteFields, statusTone, validarRaio } from '../components/Cliente360'
 import { HBars } from '../components/charts'
 import { ativacao, curvaABC, debitosPorCliente, faturamento12m, pedidosNoPeriodo, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, int } from '../lib/format'
@@ -153,6 +153,7 @@ export default function Carteira() {
           initial={edit}
           onClose={() => setEdit(null)}
           onSave={(v) => { upsert('clientes', v); setEdit(null) }}
+          validate={(v) => validarRaio(db, v)}
           onDelete={db.clientes.some((c) => c.id === edit.id) ? () => { remove('clientes', edit.id); setEdit(null) } : undefined}
         />
       )}

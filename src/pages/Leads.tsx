@@ -11,10 +11,10 @@ import { exportCSV, parseCSV } from '../lib/csv'
 import { IcDownload, IcPlus, IcUpload } from '../components/Icons'
 
 export const TERR_LABEL: Record<LinhaTerritorio['status'], string> = {
-  ocupada: 'Cidade ocupada', vai_liberar: 'Vai liberar', disponivel: 'Disponível', bloqueada: 'Bloqueada', reservada: 'Reservada', prioritaria: 'Prioritária',
+  ocupada: 'Cidade ocupada', vai_liberar: 'Vai liberar', disponivel: 'Disponível', bloqueada: 'Bloqueada', reservada: 'Reservada', prioritaria: 'Prioritária', por_raio: 'Capital — verificar raio',
 }
 export const terrTone = (s?: LinhaTerritorio['status']) =>
-  s === 'disponivel' || s === 'prioritaria' ? 'good' : s === 'vai_liberar' ? 'warn' : s === 'ocupada' || s === 'bloqueada' ? 'bad' : s === 'reservada' ? 'info' : undefined
+  s === 'disponivel' || s === 'prioritaria' ? 'good' : s === 'vai_liberar' ? 'warn' : s === 'ocupada' || s === 'bloqueada' ? 'bad' : s === 'reservada' || s === 'por_raio' ? 'info' : undefined
 
 export default function Leads() {
   const { db, periodo, upsert, remove, bulkUpsert } = useStore()
@@ -227,6 +227,8 @@ export default function Leads() {
             { name: 'email', label: 'E-mail', type: 'email' },
             { name: 'cidade', label: 'Cidade (igual ao cadastro de revendas)', required: true, help: (() => { const t = terr(edit); return t ? `Território: ${TERR_LABEL[t.status]}${t.liberaEm ? ` em ${date(t.liberaEm)}` : ''}${t.revendas.length ? ` · ${t.revendas.filter((r) => r.status !== 'encerrada').map((r) => r.nome).join(', ')}` : ''}` : 'Cidade ainda não mapeada na Expansão.' })() },
             { name: 'uf', label: 'UF', type: 'select', required: true, options: UFS_AREA.map((u) => ({ value: u, label: u })) },
+            { name: 'endereco', label: 'Endereço da loja', full: true },
+            { name: 'localizacao', label: 'Localização (Google Maps)', full: true, placeholder: '-23.5874, -46.6576', help: 'Na capital, cole o link ou as coordenadas do Google Maps para checar o raio das revendas em Expansão.' },
             { name: 'origem', label: 'Origem', type: 'select', required: true, options: opts(ORIGEM_LEAD) },
             { name: 'campanhaId', label: 'Campanha', type: 'select', options: db.campanhas.map((c) => ({ value: c.id, label: `${c.plataforma === 'meta' ? 'Meta' : 'Google'} — ${c.nome}` })) },
             { name: 'criativoId', label: 'Criativo', type: 'select', options: db.criativos.filter((c) => !edit.campanhaId || c.campanhaId === edit.campanhaId).map((c) => ({ value: c.id, label: c.nome })) },

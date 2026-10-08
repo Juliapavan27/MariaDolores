@@ -5,6 +5,7 @@ const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFra
 
 export const money = (v: number) => brl.format(Number.isFinite(v) ? v : 0)
 export const money2 = (v: number) => brl2.format(Number.isFinite(v) ? v : 0)
+export const km = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} km`
 export const int = (v: number) => num.format(Math.round(Number.isFinite(v) ? v : 0))
 export const short = (v: number) => compact.format(Number.isFinite(v) ? v : 0)
 export const moneyShort = (v: number) => 'R$ ' + compact.format(Number.isFinite(v) ? v : 0)

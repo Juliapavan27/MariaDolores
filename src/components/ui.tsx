@@ -210,9 +210,11 @@ export interface Field {
 }
 
 export function FormModal<T extends object>({
-  title, fields, initial, onSave, onClose, onDelete, wide,
+  title, fields, initial, onSave, onClose, onDelete, wide, validate,
 }: {
   title: string; fields: Field[]; initial: T; onSave: (v: T) => void; onClose: () => void; onDelete?: () => void; wide?: boolean
+  /** Regra de negócio: devolve a mensagem que impede salvar. */
+  validate?: (v: T) => string | undefined
 }) {
   const [v, setV] = useState<Record<string, unknown>>(initial as Record<string, unknown>)
   const [err, setErr] = useState('')
@@ -220,6 +222,8 @@ export function FormModal<T extends object>({
   const submit = () => {
     const missing = fields.filter((f) => f.required && (v[f.name] === undefined || v[f.name] === ''))
     if (missing.length) return setErr(`Preencha: ${missing.map((m) => m.label).join(', ')}`)
+    const bloqueio = validate?.(v as T)
+    if (bloqueio) return setErr(bloqueio)
     onSave(v as T)
   }
   return (

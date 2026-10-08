@@ -17,6 +17,12 @@ const CAMPOS: { k: keyof Cfg; label: string; type: 'text' | 'number'; step?: str
   { k: 'divisaoMeta', label: 'Fração da verba na Meta (0 a 1)', type: 'number', step: '0.05', help: 'O restante vai para o Google Ads' },
   { k: 'diasInatividadeAlerta', label: 'Alerta de revenda sem compra (dias)', type: 'number' },
   { k: 'raioExclusividadeKm', label: 'Raio de exclusividade (km)', type: 'number' },
+  { k: 'raioCapitalCheioKm', label: 'SP capital — raio cheio (km)', type: 'number', step: '0.1', help: 'Raio de quem está começando e de quem compra acima do limite superior' },
+  { k: 'raioCapitalMedioKm', label: 'SP capital — raio intermediário (km)', type: 'number', step: '0.1' },
+  { k: 'raioCapitalMinimoKm', label: 'SP capital — raio mínimo (km)', type: 'number', step: '0.1' },
+  { k: 'raioCapitalLimiteMedio', label: 'SP capital — compras para sair do raio mínimo (R$)', type: 'number', help: 'Até este valor no período: raio mínimo' },
+  { k: 'raioCapitalLimiteCheio', label: 'SP capital — compras para o raio cheio (R$)', type: 'number', help: 'Acima deste valor no período: raio cheio' },
+  { k: 'raioCapitalMeses', label: 'SP capital — meses fechados avaliados', type: 'number' },
 ]
 
 export default function Configuracoes() {

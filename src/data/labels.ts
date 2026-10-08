@@ -174,11 +174,16 @@ export const foraDaArea = (uf?: string) => {
 /** UFs que o showroom atende (para os campos de cadastro). */
 export const UFS_AREA = UFS.filter((u) => !foraDaArea(u))
 
+const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
+/** São Paulo capital (inclusive cadastros por bairro, como "São Paulo — Moema"). */
+export const ehCapitalSP = (cidade: string, uf: string) => (uf || '').toUpperCase() === 'SP' && semAcento(cidade || '').startsWith('sao paulo')
+
 /** Região padrão a partir da cidade e da UF. */
 export function regiaoPorUF(cidade: string, uf: string) {
   const u = (uf || '').trim().toUpperCase()
   if (!u) return ''
-  if (u === 'SP') return cidade.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').startsWith('sao paulo') ? 'Capital SP' : 'Interior / Grande SP'
+  if (u === 'SP') return ehCapitalSP(cidade, u) ? 'Capital SP' : 'Interior / Grande SP'
   const m = macroRegiao(u)
   if (!m) return ''
   return AREA_SHOWROOM.includes(m) ? `${m} — ${u}` : `Fora da área — ${m}`

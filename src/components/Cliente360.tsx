@@ -8,6 +8,9 @@ import { CANAL, REGIOES, STATUS_CLIENTE, STATUS_DEVOLUCAO, STATUS_PEDIDO, STATUS
 import { curvaABC, faturamento12m, pedidosValidos, saldo, statusTitulo, ultimaCompraMap } from '../lib/metrics'
 import { date, money, int, safeDiv } from '../lib/format'
 import { diffDays, today } from '../lib/dates'
+import { ehCapitalSP } from '../data/labels'
+import { lerLocalizacao, raiosCapital, verificarPonto } from '../lib/raio'
+import { km } from '../lib/format'
 
 export function clienteFields(db: ReturnType<typeof useStore>['db']): Field[] {
   return [
@@ -18,6 +21,8 @@ export function clienteFields(db: ReturnType<typeof useStore>['db']): Field[] {
     { name: 'cidade', label: 'Cidade (ou bairro na capital)', required: true },
     { name: 'uf', label: 'UF', type: 'select', options: UFS_AREA.map((u) => ({ value: u, label: u })), required: true },
     { name: 'regiao', label: 'Região', type: 'select', options: REGIOES.map((r) => ({ value: r, label: r })), required: true },
+    { name: 'endereco', label: 'Endereço da loja', full: true },
+    { name: 'localizacao', label: 'Localização (Google Maps)', full: true, placeholder: '-23.5874, -46.6576', help: 'Obrigatória em SP capital: o raio de atuação é medido a partir deste ponto. No Google Maps, clique com o botão direito na loja e copie as coordenadas (ou cole o link).' },
     { name: 'responsavelId', label: 'Atendida por', type: 'select', required: true, options: db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => ({ value: c.id, label: c.nome })), help: db.colaboradores.some((c) => c.cargo !== 'analista') ? undefined : 'Cadastre primeiro as vendedoras e representantes em Equipe & metas.' },
     { name: 'telefone', label: 'Telefone / WhatsApp', type: 'tel' },
     { name: 'email', label: 'E-mail', type: 'email' },
@@ -34,6 +39,22 @@ export function clienteFields(db: ReturnType<typeof useStore>['db']): Field[] {
     { name: 'proximoPasso', label: 'Ficha — próximo passo', full: true },
     { name: 'observacoes', label: 'Observações', type: 'textarea' },
   ]
+}
+
+/**
+ * Em SP capital, uma revenda nova (ou que mudou de endereço) não pode abrir dentro do raio de outra.
+ * Revendas encerradas não são checadas.
+ */
+export function validarRaio(db: ReturnType<typeof useStore>['db'], v: Cliente): string | undefined {
+  if (!ehCapitalSP(v.cidade, v.uf) || v.status === 'encerrada') return undefined
+  const ponto = lerLocalizacao(v.localizacao)
+  if (!ponto) return v.localizacao ? 'Localização não reconhecida: cole o link do Google Maps ou as coordenadas (ex.: -23.5874, -46.6576).' : undefined
+  const antes = db.clientes.find((c) => c.id === v.id)
+  if (antes && antes.localizacao === v.localizacao && ehCapitalSP(antes.cidade, antes.uf)) return undefined
+  const { conflitos } = verificarPonto(raiosCapital(db), ponto, v.id)
+  if (!conflitos.length) return undefined
+  const c = conflitos[0]
+  return `Endereço dentro do raio de ${c.raio.cliente.nome}: a ${km(c.distanciaKm)}, com raio de ${km(c.raio.raioKm)}. Não é possível abrir revenda aqui.`
 }
 
 export const statusTone = (s: Cliente['status']) => (s === 'ativa' ? 'good' : s === 'em_queda' ? 'warn' : undefined)
@@ -62,6 +83,7 @@ export function Cliente360({ cliente: inicial, onClose, onEdit }: { cliente: Cli
       total: validos.reduce((s, p) => s + p.valor, 0),
       ultima: ultimaCompraMap(db).get(cliente.id),
       curva: curvaABC(db).get(cliente.id) || 'C',
+      raio: ehCapitalSP(cliente.cidade, cliente.uf) ? raiosCapital(db).find((r) => r.cliente.id === cliente.id) : undefined,
     }
   }, [db, cliente.id])
 
@@ -76,6 +98,11 @@ export function Cliente360({ cliente: inicial, onClose, onEdit }: { cliente: Cli
         <Badge tone={statusTone(cliente.status)}>{STATUS_CLIENTE[cliente.status]}</Badge>
         <Badge plain>{TIPO_CLIENTE[cliente.tipo]}</Badge>
         <span className="small muted">{cliente.cidade}/{cliente.uf} · {cliente.regiao}</span>
+        {d.raio && (
+          <Badge tone={d.raio.implantacao || d.raio.faixa === 'cheio' ? 'good' : d.raio.faixa === 'medio' ? 'warn' : 'bad'}>
+            Raio de atuação {km(d.raio.raioKm)}{d.raio.ponto ? '' : ' · falta localização'}
+          </Badge>
+        )}
       </div>
       <Tabs value={aba} onChange={setAba} options={[
         { value: 'resumo', label: 'Resumo' },

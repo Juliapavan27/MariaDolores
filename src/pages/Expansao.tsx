@@ -10,9 +10,14 @@ import { addDays, diffDays, today } from '../lib/dates'
 import { REGIOES, UFS_AREA, ETAPA_LEAD, ORIGEM_LEAD } from '../data/labels'
 import { exportCSV } from '../lib/csv'
 import { IcDownload, IcPlus } from '../components/Icons'
+import { RaioCapital } from '../components/RaioCapital'
+import { km } from '../lib/format'
+import { lerLocalizacao, raiosCapital, verificarPonto } from '../lib/raio'
+import { ehCapitalSP } from '../data/labels'
+import type { Lead } from '../data/types'
 
 const COR: Record<StatusTerritorio, string> = {
-  ocupada: 'var(--bad)', vai_liberar: 'var(--warn)', disponivel: 'var(--good)', prioritaria: 'var(--rose)', reservada: 'var(--info)', bloqueada: 'var(--muted)',
+  ocupada: 'var(--bad)', vai_liberar: 'var(--warn)', disponivel: 'var(--good)', prioritaria: 'var(--rose)', reservada: 'var(--info)', bloqueada: 'var(--muted)', por_raio: 'var(--gold)',
 }
 
 export default function Expansao() {
@@ -33,8 +38,23 @@ export default function Expansao() {
   const leadsAbertos = db.leads.filter((l) => !['ganho', 'perdido'].includes(l.etapa))
   const chave = (c: string, uf: string) => `${c.trim().toLowerCase()}|${uf}`
   const statusDe = new Map(linhas.map((l) => [l.chave, l]))
-  const espera = leadsAbertos.filter((l) => ['ocupada', 'vai_liberar', 'reservada', 'bloqueada'].includes(statusDe.get(chave(l.cidade, l.uf))?.status || ''))
-  const prontos = leadsAbertos.filter((l) => ['disponivel', 'prioritaria'].includes(statusDe.get(chave(l.cidade, l.uf))?.status || ''))
+  const raios = useMemo(() => raiosCapital(db), [db])
+  // Na capital a decisão é pelo raio em volta do endereço do lead, não pela cidade
+  const situacao = (l: Lead): { pronto: boolean; label: string; tone: 'good' | 'warn' | 'bad' | 'info' | undefined } => {
+    if (ehCapitalSP(l.cidade, l.uf)) {
+      const p = lerLocalizacao(l.localizacao)
+      if (!p) return { pronto: false, label: 'Capital — falta localização', tone: 'warn' }
+      const v = verificarPonto(raios, p)
+      return v.conflitos.length
+        ? { pronto: false, label: `No raio de ${v.conflitos[0].raio.cliente.nome} (${km(v.conflitos[0].distanciaKm)})`, tone: 'bad' }
+        : { pronto: true, label: 'Capital — fora dos raios', tone: 'good' }
+    }
+    const t = statusDe.get(chave(l.cidade, l.uf))
+    if (!t) return { pronto: false, label: 'Cidade não mapeada', tone: undefined }
+    return { pronto: ['disponivel', 'prioritaria'].includes(t.status), label: `${TERR_LABEL[t.status]}${t.liberaEm ? ` ${date(t.liberaEm)}` : ''}`, tone: terrTone(t.status) }
+  }
+  const espera = leadsAbertos.filter((l) => { const s = situacao(l); return !s.pronto && s.label !== 'Cidade não mapeada' })
+  const prontos = leadsAbertos.filter((l) => situacao(l).pronto)
 
   const visiveis = linhas.filter((l) => filtro === 'todas' || l.status === filtro)
   const { q, setQ, filtered } = useSearch(visiveis, (l: LinhaTerritorio) => `${l.cidade} ${l.uf} ${l.regiao} ${l.revendas.map((r) => r.nome).join(' ')}`)
@@ -65,6 +85,8 @@ export default function Expansao() {
         <Kpi label="Leads prontos p/ avançar" value={int(prontos.length)} foot="em cidade disponível" />
         <Kpi label="Leads em espera" value={int(espera.length)} foot="cidade ocupada, reservada ou liberando" />
       </div>
+
+      <RaioCapital />
 
       <div className="grid g-2-1 mt">
         <Card title="Revendas que vão cair" sub="linha do tempo — a região fica disponível após a data">
@@ -103,11 +125,11 @@ export default function Expansao() {
         <Card title="Leads x território" sub="onde a analista pode avançar">
           <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>Prontos para avançar ({prontos.length})</h4>
           <div className="list">
-            {prontos.slice(0, 6).map((l) => <div key={l.id} className="list-item"><div className="grow"><div className="strong">{l.nome}</div><div className="small muted">{l.cidade}/{l.uf} · {ORIGEM_LEAD[l.origem]} · {ETAPA_LEAD[l.etapa]}</div></div><Badge tone={terrTone(statusDe.get(chave(l.cidade, l.uf))?.status)}>{TERR_LABEL[statusDe.get(chave(l.cidade, l.uf))!.status]}</Badge></div>)}
+            {prontos.slice(0, 6).map((l) => <div key={l.id} className="list-item"><div className="grow"><div className="strong">{l.nome}</div><div className="small muted">{l.cidade}/{l.uf} · {ORIGEM_LEAD[l.origem]} · {ETAPA_LEAD[l.etapa]}</div></div><Badge tone={situacao(l).tone}>{situacao(l).label}</Badge></div>)}
           </div>
           <h4 style={{ margin: '14px 0 6px', fontSize: 13 }}>Em espera ({espera.length})</h4>
           <div className="list">
-            {espera.slice(0, 6).map((l) => { const t = statusDe.get(chave(l.cidade, l.uf))!; return <div key={l.id} className="list-item"><div className="grow"><div className="strong">{l.nome}</div><div className="small muted">{l.cidade}/{l.uf} · {ETAPA_LEAD[l.etapa]}</div></div><Badge tone={terrTone(t.status)}>{TERR_LABEL[t.status]}{t.liberaEm ? ` ${date(t.liberaEm)}` : ''}</Badge></div> })}
+            {espera.slice(0, 6).map((l) => { const s = situacao(l); return <div key={l.id} className="list-item"><div className="grow"><div className="strong">{l.nome}</div><div className="small muted">{l.cidade}/{l.uf} · {ETAPA_LEAD[l.etapa]}</div></div><Badge tone={s.tone}>{s.label}</Badge></div> })}
           </div>
         </Card>
       </div>
@@ -151,7 +173,7 @@ export default function Expansao() {
             { key: 'motivo', label: 'Observação', render: (r) => <span className="small muted">{r.motivo || ''}</span> },
           ]} />
         )}
-        <p className="small muted" style={{ marginBottom: 0 }}>Raio de exclusividade de referência: {db.config.raioExclusividadeKm} km. Na capital, o território é controlado por bairro/zona.</p>
+        <p className="small muted" style={{ marginBottom: 0 }}>Fora da capital, a exclusividade é por cidade (raio de referência: {db.config.raioExclusividadeKm} km). Em São Paulo capital vale o raio por endereço, no quadro acima.</p>
       </Card>
 
       {cidade && (
