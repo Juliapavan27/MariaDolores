@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Pedido } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, opts, useSearch } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, opts, useSearch, pessoasAtivas, opcoesPessoas } from '../components/ui'
 import { HBars, RevenueChart, useChartColors } from '../components/charts'
 import { devolucoesValidas, faturamentoBI, mesesComFechamento, metaShowroom, pedidosNoPeriodo, serieMensal, somaValor } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
@@ -95,7 +95,7 @@ export default function Faturamento() {
         <div className="toolbar">
           <input className="input search" placeholder="Buscar revenda ou coleção…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="input" value={canal} onChange={(e) => setCanal(e.target.value)}><option value="">Todos os canais</option>{Object.entries(CANAL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-          <select className="input" value={resp} onChange={(e) => setResp(e.target.value)}><option value="">Toda a equipe</option>{db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+          <select className="input" value={resp} onChange={(e) => setResp(e.target.value)}><option value="">Toda a equipe</option>{pessoasAtivas(db, { semAnalista: true }).filter((c) => c.cargo !== 'analista').map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select>
         </div>
         <DataTable rows={filtered} onRowClick={(r) => setEdit(r)} initialSort={{ key: 'data', dir: -1 }} columns={[
           { key: 'data', label: 'Data', value: (r) => r.data, render: (r) => date(r.data) },
@@ -121,7 +121,7 @@ export default function Faturamento() {
           onDelete={!isNovo ? () => { remove('pedidos', edit.id); setEdit(null) } : undefined}
           fields={[
             { name: 'clienteId', label: 'Revenda', type: 'select', required: true, options: db.clientes.filter((c) => c.status !== 'encerrada').sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => ({ value: c.id, label: `${c.nome} — ${c.cidade}` })) },
-            { name: 'responsavelId', label: 'Responsável (vazio = da carteira)', type: 'select', options: db.colaboradores.map((c) => ({ value: c.id, label: c.nome })) },
+            { name: 'responsavelId', label: 'Responsável (vazio = da carteira)', type: 'select', options: opcoesPessoas(db, { atual: edit?.responsavelId }) },
             { name: 'data', label: 'Data', type: 'date', required: true },
             { name: 'canal', label: 'Canal', type: 'select', options: opts(CANAL), required: true },
             { name: 'valor', label: 'Valor (R$)', type: 'number', required: true },

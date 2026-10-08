@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../data/store'
 import type { Cliente } from '../data/types'
-import { Badge, DataTable, FormModal, Modal, StatRow, Tabs, opts, type Field, Person } from './ui'
+import { Badge, DataTable, FormModal, Modal, StatRow, Tabs, opts, type Field, Person, opcoesPessoas } from './ui'
 import { AtendimentoForm, RESULTADO_ATENDIMENTO, TIPO_ATENDIMENTO, novoAtendimento } from './AtendimentoForm'
 import type { Atendimento } from '../data/types'
 import { CANAL, REGIOES, STATUS_CLIENTE, STATUS_DEVOLUCAO, STATUS_PEDIDO, STATUS_RECLAMACAO, TIPO_CLIENTE, UFS_AREA } from '../data/labels'
@@ -12,7 +12,7 @@ import { ehCapitalSP } from '../data/labels'
 import { lerLocalizacao, raiosCapital, verificarPonto } from '../lib/raio'
 import { km } from '../lib/format'
 
-export function clienteFields(db: ReturnType<typeof useStore>['db']): Field[] {
+export function clienteFields(db: ReturnType<typeof useStore>['db'], atual?: string): Field[] {
   return [
     { name: 'nome', label: 'Nome da revenda / loja', required: true },
     { name: 'responsavelNome', label: 'Pessoa de contato' },
@@ -23,7 +23,7 @@ export function clienteFields(db: ReturnType<typeof useStore>['db']): Field[] {
     { name: 'regiao', label: 'Região', type: 'select', options: REGIOES.map((r) => ({ value: r, label: r })), required: true },
     { name: 'endereco', label: 'Endereço da loja', full: true },
     { name: 'localizacao', label: 'Localização (Google Maps)', full: true, placeholder: '-23.5874, -46.6576', help: 'Obrigatória em SP capital: o raio de atuação é medido a partir deste ponto. No Google Maps, clique com o botão direito na loja e copie as coordenadas (ou cole o link).' },
-    { name: 'responsavelId', label: 'Atendida por', type: 'select', required: true, options: db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => ({ value: c.id, label: c.nome })), help: db.colaboradores.some((c) => c.cargo !== 'analista') ? undefined : 'Cadastre primeiro as vendedoras e representantes em Equipe & metas.' },
+    { name: 'responsavelId', label: 'Atendida por', type: 'select', required: true, options: opcoesPessoas(db, { semAnalista: true, atual }), help: db.colaboradores.some((c) => c.cargo !== 'analista') ? undefined : 'Cadastre primeiro as vendedoras e representantes em Equipe & metas.' },
     { name: 'telefone', label: 'Telefone / WhatsApp', type: 'tel' },
     { name: 'email', label: 'E-mail', type: 'email' },
     { name: 'instagram', label: 'Instagram' },

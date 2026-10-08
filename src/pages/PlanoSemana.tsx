@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useFoco } from '../lib/router'
 import { useStore } from '../data/store'
 import type { Atendimento, Cliente } from '../data/types'
-import { Badge, Card, DataTable, Kpi, PageHead, Person, FocoAviso } from '../components/ui'
+import { Badge, Card, DataTable, Kpi, PageHead, Person, FocoAviso, pessoasAtivas } from '../components/ui'
 import { Cliente360 } from '../components/Cliente360'
 import { AtendimentoForm, novoAtendimento } from '../components/AtendimentoForm'
 import { GRUPOS, ORDEM_GRUPOS, indicadoresCarteira, lerCarteira, ordemDaSemana, type Grupo } from '../lib/carteira'
@@ -57,7 +57,7 @@ export default function PlanoSemana() {
         actions={<>
           <select className="input" style={{ width: 'auto' }} value={quem} onChange={(e) => setQuem(e.target.value)} aria-label="Carteira">
             <option value="">Carteira inteira</option>
-            {db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            {pessoasAtivas(db, { semAnalista: true }).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
           <button className="btn primary" onClick={() => setRegistrar(novoAtendimento('', quem || db.colaboradores[0]?.id || ''))}>Registrar atendimento</button>
         </>}

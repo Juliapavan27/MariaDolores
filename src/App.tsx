@@ -134,14 +134,14 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
 function FiltrosGlobais() {
   const { dbArea, filtros, setFiltros } = useStore()
   const equipe = dbArea.colaboradores
-    .filter((c) => c.cargo !== 'analista' && (!filtros.unidade || chaveUnidade(c.regiao || '') === filtros.unidade) && (!filtros.showroom || c.time === filtros.showroom))
+    .filter((c) => c.cargo !== 'analista' && c.ativo && (!filtros.unidade || chaveUnidade(c.regiao || '') === filtros.unidade) && (!filtros.showroom || c.time === filtros.showroom))
     .sort((a, b) => a.nome.localeCompare(b.nome))
   const ativo = filtroAtivo(filtros)
   return (
     <div className={`filtros-bar ${ativo ? 'ativo' : ''}`}>
       <span className="rotulo">Filtrar</span>
       {showrooms(dbArea).length > 1 && (
-        <select className="input" value={filtros.showroom || ''} onChange={(e) => setFiltros({ ...filtros, showroom: e.target.value || undefined, vendedora: undefined })} aria-label="Showroom">
+        <select className="input" value={filtros.showroom || ''} onChange={(e) => setFiltros({ ...filtros, showroom: e.target.value || undefined, vendedora: undefined, unidade: undefined })} aria-label="Showroom">
           <option value="">Todos os showrooms</option>
           {showrooms(dbArea).map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -152,7 +152,7 @@ function FiltrosGlobais() {
       </select>
       <select className="input" value={filtros.unidade || ''} onChange={(e) => setFiltros({ ...filtros, unidade: e.target.value || undefined, vendedora: undefined })} aria-label="Unidade">
         <option value="">Todas as unidades</option>
-        {unidades(dbArea).map((u) => <option key={u.valor} value={u.valor}>{u.label}</option>)}
+        {unidades(dbArea, filtros.showroom).map((u) => <option key={u.valor} value={u.valor}>{u.label}</option>)}
       </select>
       <select className="input" value={filtros.regiao || ''} onChange={(e) => setFiltros({ ...filtros, regiao: e.target.value || undefined })} aria-label="Região">
         <option value="">Todas as regiões</option>

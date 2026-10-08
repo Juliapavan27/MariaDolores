@@ -19,10 +19,10 @@ export const showrooms = (db: Database) => Array.from(new Set(db.colaboradores.m
 export const chaveUnidade = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
 /** Unidades (filial/loja/time) a partir do campo "região/carteira" da equipe, sem duplicar grafias. */
-export function unidades(db: Database) {
+export function unidades(db: Database, showroom?: string) {
   const m = new Map<string, string>()
   db.colaboradores.forEach((c) => {
-    if (!c.regiao) return
+    if (!c.regiao || (showroom && c.time !== showroom)) return
     const k = chaveUnidade(c.regiao)
     if (!m.has(k)) m.set(k, c.regiao)
   })

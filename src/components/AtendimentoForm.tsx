@@ -1,6 +1,6 @@
 import { newId, useStore } from '../data/store'
 import type { Atendimento, ResultadoAtendimento, TipoAtendimento } from '../data/types'
-import { FormModal, opts } from './ui'
+import { FormModal, opts, opcoesPessoas } from './ui'
 import { addDays, today } from '../lib/dates'
 
 export const TIPO_ATENDIMENTO: Record<TipoAtendimento, string> = {
@@ -27,7 +27,7 @@ export function AtendimentoForm({ inicial, onClose }: { inicial: Atendimento; on
       onDelete={existe ? () => { remove('atendimentos', inicial.id); onClose() } : undefined}
       fields={[
         { name: 'clienteId', label: 'Revenda', type: 'select', required: true, options: db.clientes.filter((c) => c.status !== 'encerrada').sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => ({ value: c.id, label: `${c.nome} — ${c.cidade}` })) },
-        { name: 'responsavelId', label: 'Quem atendeu', type: 'select', required: true, options: db.colaboradores.map((c) => ({ value: c.id, label: c.nome })) },
+        { name: 'responsavelId', label: 'Quem atendeu', type: 'select', required: true, options: opcoesPessoas(db, { atual: inicial.responsavelId }) },
         { name: 'data', label: 'Data', type: 'date', required: true },
         { name: 'tipo', label: 'Como foi o contato', type: 'select', required: true, options: opts(TIPO_ATENDIMENTO) },
         { name: 'resultado', label: 'Resultado', type: 'select', required: true, options: opts(RESULTADO_ATENDIMENTO) },

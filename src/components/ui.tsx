@@ -200,18 +200,70 @@ export function DataTable<T extends { id: string }>({
 }
 
 // ---------------- Formulário genérico ----------------
-export type FieldType = 'text' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox' | 'multiselect' | 'email' | 'tel' | 'url'
+export type FieldType = 'text' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox' | 'multiselect' | 'email' | 'tel' | 'url' | 'secao'
 
 export interface Field {
   name: string
   label: string
   type?: FieldType
-  options?: { value: string; label: string }[]
+  /** `detalhe` aparece em segundo plano e entra na busca (ex.: cidade e vendedora da revenda). */
+  options?: { value: string; label: string; detalhe?: string }[]
   full?: boolean
   required?: boolean
   placeholder?: string
   step?: string
   help?: string
+}
+
+/**
+ * Pessoas para escolher num formulário ou filtro: só quem está ativo, em ordem alfabética.
+ * A pessoa já gravada no registro continua na lista mesmo se inativa, para não sumir na edição.
+ */
+export function pessoasAtivas(db: { colaboradores: { id: string; nome: string; cargo: string; ativo: boolean }[] }, opts: { atual?: string; semAnalista?: boolean } = {}) {
+  return db.colaboradores
+    .filter((c) => (c.ativo || c.id === opts.atual) && (!opts.semAnalista || c.cargo !== 'analista'))
+    .sort((a, b) => a.nome.localeCompare(b.nome))
+}
+export const opcoesPessoas = (db: Parameters<typeof pessoasAtivas>[0], opts: Parameters<typeof pessoasAtivas>[1] = {}) =>
+  pessoasAtivas(db, opts).map((c) => ({ value: c.id, label: c.ativo ? c.nome : `${c.nome} (inativa)` }))
+
+/**
+ * Seleção de vários itens com busca: caixas de marcar, selecionados no topo, "Limpar" e nenhum obrigatório.
+ * Substitui o select múltiplo nativo, que exige Ctrl/Cmd e não tem busca.
+ */
+export function MultiBusca({ id, opcoes, valor, onChange, placeholder }: {
+  id?: string; opcoes: { value: string; label: string; detalhe?: string }[]; valor: string[]; onChange: (v: string[]) => void; placeholder?: string
+}) {
+  const [q, setQ] = useState('')
+  const [soMarcadas, setSoMarcadas] = useState(false)
+  const marcadas = new Set(valor)
+  const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const termo = norm(q.trim())
+  const lista = opcoes
+    .filter((o) => (!soMarcadas || marcadas.has(o.value)) && (!termo || norm(`${o.label} ${o.detalhe || ''}`).includes(termo)))
+    .sort((a, b) => Number(marcadas.has(b.value)) - Number(marcadas.has(a.value)))
+  const LIMITE = 80
+  const alternar = (v: string) => onChange(marcadas.has(v) ? valor.filter((x) => x !== v) : [...valor, v])
+  return (
+    <div className="multibusca">
+      <div className="multibusca-topo">
+        <input id={id} className="input" placeholder={placeholder || 'Buscar por nome, cidade ou vendedora…'} value={q} onChange={(e) => setQ(e.target.value)} />
+        <span className="small muted">{valor.length ? `${valor.length} selecionada(s)` : 'Nenhuma selecionada'}</span>
+        {valor.length > 0 && <button type="button" className="btn sm ghost" onClick={() => setSoMarcadas(!soMarcadas)}>{soMarcadas ? 'Ver todas' : 'Ver selecionadas'}</button>}
+        {valor.length > 0 && <button type="button" className="btn sm ghost" onClick={() => { onChange([]); setSoMarcadas(false) }}>Limpar</button>}
+      </div>
+      <div className="multibusca-lista" role="listbox" aria-multiselectable>
+        {lista.slice(0, LIMITE).map((o) => (
+          <label key={o.value} className={`multibusca-item ${marcadas.has(o.value) ? 'on' : ''}`}>
+            <input type="checkbox" checked={marcadas.has(o.value)} onChange={() => alternar(o.value)} />
+            <span className="grow">{o.label}{o.detalhe && <span className="small muted"> · {o.detalhe}</span>}</span>
+          </label>
+        ))}
+        {!lista.length && <div className="small muted" style={{ padding: 10 }}>Nada encontrado.</div>}
+        {lista.length > LIMITE && <div className="small muted" style={{ padding: 10 }}>Mostrando {LIMITE} de {lista.length}. Refine a busca.</div>}
+      </div>
+    </div>
+  )
 }
 
 export function FormModal<T extends object>({
@@ -262,15 +314,9 @@ export function FormModal<T extends object>({
                 </select>
               )
               break
-            case 'multiselect': {
-              const arr = (val as string[]) || []
-              input = (
-                <select {...common} multiple size={6} value={arr} onChange={(e) => set(f.name, Array.from(e.target.selectedOptions).map((o) => o.value))}>
-                  {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              )
+            case 'multiselect':
+              input = <MultiBusca id={common.id} opcoes={f.options || []} valor={(val as string[]) || []} placeholder={f.placeholder} onChange={(v) => set(f.name, v)} />
               break
-            }
             case 'textarea':
               input = <textarea {...common} value={(val as string) ?? ''} onChange={(e) => set(f.name, e.target.value)} />
               break
@@ -290,6 +336,7 @@ export function FormModal<T extends object>({
             default:
               input = <input {...common} type={f.type || 'text'} value={(val as string) ?? ''} onChange={(e) => set(f.name, e.target.value)} />
           }
+          if (f.type === 'secao') return <h4 key={f.name} className="form-secao">{f.label}{f.help && <span className="small muted"> · {f.help}</span>}</h4>
           return (
             <div key={f.name} className={`field ${f.full || f.type === 'textarea' || f.type === 'multiselect' ? 'full' : ''}`}>
               <label htmlFor={`f-${f.name}`}>{f.label}{f.required && ' *'}</label>

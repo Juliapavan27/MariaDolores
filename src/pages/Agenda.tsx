@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { Tarefa, Visita } from '../data/types'
-import { Badge, Card, FormModal, PageHead, Person, Segmented, FocoAviso } from '../components/ui'
+import { Badge, Card, FormModal, PageHead, Person, Segmented, FocoAviso, pessoasAtivas, opcoesPessoas } from '../components/ui'
 import { date, dayMonth } from '../lib/format'
 import { addDays, diffDays, parse, today } from '../lib/dates'
 import { IcPlus } from '../components/Icons'
@@ -51,7 +51,7 @@ export default function Agenda() {
       <div className="toolbar">
         <select className="input" value={quem} onChange={(e) => setQuem(e.target.value)}>
           <option value="">Toda a equipe</option>
-          {db.colaboradores.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          {pessoasAtivas(db).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
         <Segmented value={janela} onChange={setJanela} options={[{ value: '7', label: '7 dias' }, { value: '14', label: '14 dias' }, { value: '30', label: '30 dias' }]} />
       </div>
@@ -118,7 +118,7 @@ export default function Agenda() {
             { name: 'clienteId', label: 'Revenda', type: 'select', options: db.clientes.filter((c) => c.status !== 'encerrada').sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => ({ value: c.id, label: c.nome })) },
             { name: 'leadId', label: 'ou Lead', type: 'select', options: db.leads.filter((l) => !['ganho', 'perdido'].includes(l.etapa)).map((l) => ({ value: l.id, label: `${l.nome} — ${l.cidade}` })) },
             { name: 'nomeVisitante', label: 'Nome de quem vem' },
-            { name: 'responsavelId', label: 'Quem atende', type: 'select', required: true, options: db.colaboradores.map((c) => ({ value: c.id, label: c.nome })) },
+            { name: 'responsavelId', label: 'Quem atende', type: 'select', required: true, options: opcoesPessoas(db, { atual: editV.responsavelId }) },
             { name: 'data', label: 'Data', type: 'date', required: true },
             { name: 'horario', label: 'Horário', required: true },
             { name: 'objetivo', label: 'Objetivo', full: true, placeholder: 'Reposição, lançamento, apresentação para nova revenda…' },
@@ -132,7 +132,7 @@ export default function Agenda() {
           onDelete={db.tarefas.some((x) => x.id === editT.id) ? () => { remove('tarefas', editT.id); setEditT(null) } : undefined}
           fields={[
             { name: 'titulo', label: 'Tarefa', required: true, full: true },
-            { name: 'responsavelId', label: 'Responsável', type: 'select', required: true, options: db.colaboradores.map((c) => ({ value: c.id, label: c.nome })) },
+            { name: 'responsavelId', label: 'Responsável', type: 'select', required: true, options: opcoesPessoas(db, { atual: editT.responsavelId }) },
             { name: 'prazo', label: 'Prazo', type: 'date', required: true },
             { name: 'relacionado', label: 'Área', type: 'select', options: ['Ativação', 'Débitos', 'Evento', 'Brindes', 'Tráfego', 'Leads', 'Pós-venda', 'Expansão'].map((x) => ({ value: x, label: x })) },
             { name: 'concluida', label: 'Concluída', type: 'checkbox' },

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Cliente, Curva } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, useSearch, FocoAviso } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, useSearch, FocoAviso, pessoasAtivas } from '../components/ui'
 import { Cliente360, clienteFields, statusTone, validarRaio } from '../components/Cliente360'
 import { HBars } from '../components/charts'
 import { useFoco, useNavigate } from '../lib/router'
@@ -119,7 +119,7 @@ export default function Carteira() {
             <input className="input search" placeholder="Buscar por nome, cidade, CNPJ, Instagram…" value={q} onChange={(e) => setQ(e.target.value)} />
             <select className="input" value={resp} onChange={(e) => setResp(e.target.value)}>
               <option value="">Toda a equipe</option>
-              {db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              {pessoasAtivas(db, { semAnalista: true }).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
             <select className="input" value={regiao} onChange={(e) => setRegiao(e.target.value)}>
               <option value="">Todas as regiões</option>
@@ -161,7 +161,7 @@ export default function Carteira() {
       {edit && (
         <FormModal
           title={db.clientes.some((c) => c.id === edit.id) ? 'Editar revenda' : 'Nova revenda'}
-          fields={clienteFields(db)}
+          fields={clienteFields(db, edit.responsavelId)}
           initial={edit}
           onClose={() => setEdit(null)}
           onSave={(v) => { upsert('clientes', v); setEdit(null) }}

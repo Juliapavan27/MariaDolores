@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useStore } from '../data/store'
-import { Card, Meter, PageHead, StatRow } from '../components/ui'
+import { Card, Meter, PageHead, StatRow, pessoasAtivas } from '../components/ui'
 import { carteira, pedidosNoPeriodo, somaValor, metaDoMes } from '../lib/metrics'
 import { lerCarteira } from '../lib/carteira'
 import { periodo as criarPeriodo } from '../lib/dates'
@@ -61,7 +61,7 @@ export default function Simulador() {
         actions={
           <select className="input" style={{ width: 'auto' }} value={quem} onChange={(e) => setQuem(e.target.value)} aria-label="Carteira">
             <option value="">Showroom inteiro</option>
-            {db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            {pessoasAtivas(db, { semAnalista: true }).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
         }
       />

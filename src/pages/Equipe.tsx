@@ -47,9 +47,13 @@ export default function Equipe() {
         const leads = leadsNoPeriodo(db, periodo).filter((l) => l.responsavelId === c.id)
         return { c, ped, fat, meta, at, dev, rec, vencido, leads }
       })
+      // fora do time (inativa) e sem nada no período não entra na lista
+      .filter((l) => l.c.ativo || l.fat || l.meta || l.ped.length)
+      .sort((a, b) => Number(b.c.ativo) - Number(a.c.ativo) || a.c.nome.localeCompare(b.c.nome))
   }, [db, periodo, filtro])
 
-  const atual = db.colaboradores.find((c) => c.id === sel)
+  // a pessoa do detalhe precisa estar na lista visível (muda com o filtro de showroom/vendedora)
+  const atual = linhas.find((l) => l.c.id === sel)?.c || linhas.find((l) => l.c.cargo !== 'analista')?.c
 
   return (
     <>
@@ -71,7 +75,7 @@ export default function Equipe() {
         {linhas.map(({ c, ped, fat, meta, at, dev, rec, vencido, leads }) => {
           const falta = Math.max(0, Math.ceil(at.base * c.metaAtivacao) - at.ativos)
           return (
-            <section key={c.id} className="card" style={{ cursor: c.cargo !== 'analista' ? 'pointer' : undefined, outline: sel === c.id ? '2px solid var(--gold-soft)' : undefined }} onClick={() => c.cargo !== 'analista' && setSel(c.id)}>
+            <section key={c.id} className="card" style={{ cursor: c.cargo !== 'analista' ? 'pointer' : undefined, outline: atual?.id === c.id ? '2px solid var(--gold-soft)' : undefined }} onClick={() => c.cargo !== 'analista' && setSel(c.id)}>
               <div className="person" style={{ marginBottom: 14 }}>
                 <Avatar name={c.nome} lg />
                 <div className="meta" style={{ flex: 1 }}>

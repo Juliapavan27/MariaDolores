@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { Devolucao, Reclamacao } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, PageHead, Person, Tabs, opts, FocoAviso } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, PageHead, Person, Tabs, opts, FocoAviso, opcoesPessoas } from '../components/ui'
 import { HBars, useChartColors } from '../components/charts'
 import { devolucoesValidas, pedidosNoPeriodo, somaValor } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
@@ -130,7 +130,7 @@ export default function PosVenda() {
             { name: 'categoria', label: 'Categoria', type: 'select', options: CATEGORIAS_RECLAMACAO.map((m) => ({ value: m, label: m })), required: true },
             { name: 'prioridade', label: 'Prioridade', type: 'select', options: opts(PRIORIDADE), required: true },
             { name: 'descricao', label: 'Descrição', type: 'textarea', required: true },
-            { name: 'responsavelId', label: 'Responsável (vazio = da carteira)', type: 'select', options: db.colaboradores.map((c) => ({ value: c.id, label: c.nome })) },
+            { name: 'responsavelId', label: 'Responsável (vazio = da carteira)', type: 'select', options: opcoesPessoas(db, { atual: editRec?.responsavelId }) },
             { name: 'status', label: 'Status', type: 'select', options: opts(STATUS_RECLAMACAO), required: true },
             { name: 'resolvidaEm', label: 'Resolvida em', type: 'date' },
             { name: 'solucao', label: 'Solução aplicada', type: 'textarea' },

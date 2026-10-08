@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Database, Evento } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Meter, Modal, PageHead, Person, Segmented, StatRow, opts } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Meter, Modal, PageHead, Person, Segmented, StatRow, opts, pessoasAtivas, opcoesPessoas } from '../components/ui'
 import { HBars, useChartColors } from '../components/charts'
 import { date, money, pct, safeDiv, int, MESES_LONGOS } from '../lib/format'
 import { addDays, addMonths, inRange, parse, startOfMonth, today } from '../lib/dates'
@@ -51,7 +51,7 @@ export default function Eventos() {
 
   const novo = (data = today()): Evento => ({
     id: newId('ev'), titulo: '', tipo: 'lancamento', dataInicio: data, dataFim: data, horario: '14h às 20h', local: 'Showroom SP', colecao: db.config.colecaoAtual,
-    responsavelId: db.colaboradores[0]?.id || '', status: 'planejado', metaFaturamento: 0, metaClientes: 0, custo: 0, convidados: 0,
+    responsavelId: pessoasAtivas(db)[0]?.id || '', status: 'planejado', metaFaturamento: 0, metaClientes: 0, custo: 0, convidados: 0,
   })
 
   return (
@@ -127,6 +127,7 @@ export default function Eventos() {
           onSave={(v) => { upsert('eventos', { ...v, dataFim: v.dataFim || v.dataInicio }); setEdit(null) }}
           onDelete={db.eventos.some((e) => e.id === edit.id) ? () => { remove('eventos', edit.id); setEdit(null) } : undefined}
           fields={[
+            { name: 'sec-plano', label: 'Planejamento', type: 'secao' },
             { name: 'titulo', label: 'Nome do evento', required: true, full: true },
             { name: 'tipo', label: 'Tipo', type: 'select', options: opts(TIPO_EVENTO), required: true },
             { name: 'status', label: 'Status', type: 'select', options: opts(STATUS_EVENTO), required: true },
@@ -135,18 +136,23 @@ export default function Eventos() {
             { name: 'horario', label: 'Horário' },
             { name: 'local', label: 'Local' },
             { name: 'colecao', label: 'Coleção apresentada' },
-            { name: 'responsavelId', label: 'Responsável', type: 'select', options: db.colaboradores.map((c) => ({ value: c.id, label: c.nome })) },
+            { name: 'responsavelId', label: 'Responsável', type: 'select', options: opcoesPessoas(db, { atual: edit.responsavelId }) },
             { name: 'metaFaturamento', label: 'Meta de faturamento (R$)', type: 'number' },
             { name: 'metaClientes', label: 'Meta de clientes presentes', type: 'number' },
             { name: 'convidados', label: 'Convidados', type: 'number' },
             { name: 'custo', label: 'Investimento (buffet, decoração, convites…) R$', type: 'number' },
-            { name: 'clientesPresentes', label: 'Resultado — clientes presentes', type: 'number' },
-            { name: 'novosCadastros', label: 'Resultado — novas revendas cadastradas', type: 'number' },
-            { name: 'leadsGerados', label: 'Resultado — leads gerados', type: 'number' },
-            { name: 'nps', label: 'Resultado — NPS / satisfação (0–10)', type: 'number', step: '0.1' },
+            { name: 'sec-resultado', label: 'Resultado', type: 'secao', help: 'preencha depois do evento' },
+            { name: 'clientesPresentes', label: 'Clientes presentes', type: 'number' },
+            { name: 'novosCadastros', label: 'Novas revendas cadastradas', type: 'number' },
+            { name: 'leadsGerados', label: 'Leads gerados', type: 'number' },
+            { name: 'nps', label: 'NPS / satisfação (0–10)', type: 'number', step: '0.1' },
             { name: 'faturamentoEvento', label: 'Faturamento extra (não lançado como pedido) R$', type: 'number', help: 'Pedidos lançados em Faturamento com este evento vinculado já entram no resultado.' },
             { name: 'pecasVendidas', label: 'Peças vendidas (se não houver pedidos)', type: 'number' },
-            { name: 'revendasIds', label: 'Revendas presentes (Ctrl/Cmd para várias)', type: 'multiselect', options: db.clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => ({ value: c.id, label: `${c.nome} — ${c.cidade}` })) },
+            { name: 'revendasIds', label: 'Revendas presentes (opcional)', type: 'multiselect', help: 'Marque quem esteve no evento. Pedidos vinculados ao evento já contam sozinhos.',
+              options: db.clientes
+                .filter((c) => c.status !== 'encerrada' || edit.revendasIds?.includes(c.id))
+                .sort((a, b) => a.nome.localeCompare(b.nome))
+                .map((c) => ({ value: c.id, label: c.nome, detalhe: [c.cidade ? `${c.cidade}/${c.uf}` : '', db.colaboradores.find((x) => x.id === c.responsavelId)?.nome].filter(Boolean).join(' · ') })) },
             { name: 'aprendizados', label: 'Aprendizados e próximos passos', type: 'textarea' },
           ]} />
       )}

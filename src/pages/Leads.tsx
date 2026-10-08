@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFoco } from '../lib/router'
 import { newId, useStore } from '../data/store'
 import type { EtapaLead, Lead, OrigemLead } from '../data/types'
-import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, opts, useSearch, FocoAviso } from '../components/ui'
+import { Badge, Card, DataTable, FormModal, Kpi, Modal, PageHead, Segmented, opts, useSearch, FocoAviso, opcoesPessoas } from '../components/ui'
 import { HBars, MultiLine, useChartColors } from '../components/charts'
 import { chaveCidade, leadParado, leadsNoPeriodo, metaDoPeriodo, territorios, type LinhaTerritorio } from '../lib/metrics'
 import { dayMonth, money, pct, safeDiv, int, date } from '../lib/format'
@@ -236,7 +236,7 @@ export default function Leads() {
             { name: 'campanhaId', label: 'Campanha', type: 'select', options: db.campanhas.map((c) => ({ value: c.id, label: `${c.plataforma === 'meta' ? 'Meta' : 'Google'} — ${c.nome}` })) },
             { name: 'criativoId', label: 'Criativo', type: 'select', options: db.criativos.filter((c) => !edit.campanhaId || c.campanhaId === edit.campanhaId).map((c) => ({ value: c.id, label: c.nome })) },
             { name: 'etapa', label: 'Etapa', type: 'select', required: true, options: opts(ETAPA_LEAD) },
-            { name: 'responsavelId', label: 'Responsável', type: 'select', options: db.colaboradores.map((c) => ({ value: c.id, label: c.nome })) },
+            { name: 'responsavelId', label: 'Responsável', type: 'select', options: opcoesPessoas(db, { atual: edit.responsavelId }) },
             { name: 'valorPotencial', label: 'Pedido inicial potencial (R$)', type: 'number' },
             { name: 'dataEntrada', label: 'Entrada', type: 'date' },
             { name: 'ultimaInteracao', label: 'Última interação', type: 'date' },
