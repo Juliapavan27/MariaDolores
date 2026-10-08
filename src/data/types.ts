@@ -41,6 +41,8 @@ export interface Cliente {
   quedaData?: string
   quedaMotivo?: string
   observacoes?: string
+  /** Data exata da última compra vinda do BI (os pedidos importados do BI são mensais). */
+  ultimaCompraBI?: string
   // Ficha da revendedora (para ninguém chegar ao showroom sem ser conhecida)
   publicoFinal?: string
   oQueGira?: string

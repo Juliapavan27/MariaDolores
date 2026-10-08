@@ -70,7 +70,8 @@ export function lerCarteira(db: Database, colaboradorId?: string): LeituraClient
   const base = carteira(db, colaboradorId)
   const linhas = base.map((c) => {
     const ps = ped.get(c.id) || []
-    const ult = ps[ps.length - 1]?.data
+    const ultPed = ps[ps.length - 1]?.data
+    const ult = c.ultimaCompraBI && (!ultPed || c.ultimaCompraBI > ultPed) ? c.ultimaCompraBI : ultPed
     const ps12 = ps.filter((p) => p.data >= ini12)
     const fat12 = ps12.reduce((s, p) => s + p.valor, 0)
     const intervalos = ps.slice(1).map((p, i) => diffDays(p.data, ps[i].data)).filter((d) => d > 0)

@@ -132,7 +132,7 @@ export default function Carteira() {
             onRowClick={(r) => setVer(db.clientes.find((c) => c.id === r.id) || null)}
             initialSort={{ key: 'fat12', dir: -1 }}
             columns={[
-              { key: 'nome', label: 'Revenda', value: (r) => r.nome, render: (r) => <><div className="strong">{r.nome}</div><div className="small muted">{r.cidade}/{r.uf}</div></> },
+              { key: 'nome', label: 'Revenda', value: (r) => r.nome, render: (r) => <><div className="strong">{r.nome}</div><div className="small muted">{r.cidade ? `${r.cidade}/${r.uf}` : "Cidade não informada"}</div></> },
               { key: 'curva', label: 'ABC', value: (r) => r.curva, render: (r) => <span className={`curva ${r.curva}`}>{r.curva}</span> },
               { key: 'resp', label: 'Responsável', value: (r) => db.colaboradores.find((c) => c.id === r.responsavelId)?.nome, render: (r) => <Person id={r.responsavelId} /> },
               { key: 'status', label: 'Status', value: (r) => r.status, render: (r) => <Badge tone={statusTone(r.status)}>{STATUS_CLIENTE[r.status]}</Badge> },

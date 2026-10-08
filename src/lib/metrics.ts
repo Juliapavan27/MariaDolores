@@ -37,6 +37,11 @@ export function ultimaCompraMap(db: Database) {
     const cur = m.get(p.clienteId)
     if (!cur || p.data > cur) m.set(p.clienteId, p.data)
   })
+  // a data exata do BI prevalece quando é mais recente que a do pedido mensal
+  db.clientes.forEach((c) => {
+    const cur = m.get(c.id)
+    if (c.ultimaCompraBI && (!cur || c.ultimaCompraBI > cur)) m.set(c.id, c.ultimaCompraBI)
+  })
   return m
 }
 
@@ -144,7 +149,7 @@ export function territorios(db: Database): LinhaTerritorio[] {
     return linhas.get(k)!
   }
   CIDADES_ALVO.forEach(([c, uf, r]) => garantir(c, uf, r))
-  db.clientes.forEach((c) => garantir(c.cidade, c.uf, c.regiao).revendas.push(c))
+  db.clientes.filter((c) => c.cidade).forEach((c) => garantir(c.cidade, c.uf, c.regiao).revendas.push(c))
   db.territorios.forEach((t) => garantir(t.cidade, t.uf, t.regiao))
   db.leads.forEach((l) => {
     if (l.etapa === 'ganho' || l.etapa === 'perdido') return
