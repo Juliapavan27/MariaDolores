@@ -580,3 +580,4 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .faixa.exemplos { background: var(--rose-wash); }
 #topo { display: block; scroll-margin-top: 120px; }
 .grid > .card.full { grid-column: 1 / -1; }
+.table tr.total td { border-top: 1px solid var(--line-strong); background: var(--gold-wash); }

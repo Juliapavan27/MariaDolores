@@ -1,19 +1,20 @@
 import { useMemo, useState } from 'react'
 import { newId, useStore } from '../data/store'
 import type { Colaborador } from '../data/types'
-import { Avatar, Badge, Card, DataTable, FormModal, Meter, PageHead, Segmented, StatRow, opts, type Field } from '../components/ui'
+import { Avatar, Badge, Card, DataTable, FormModal, Meter, PageHead, Segmented, StatRow, opts, type Field, Kpi } from '../components/ui'
 import { RevenueChart } from '../components/charts'
 import { indicadoresCarteira } from '../lib/carteira'
-import { ativacao, carteira, faturamentoBI, curvaABC, debitosPorCliente, devolucoesValidas, leadsNoPeriodo, metaPessoa, metasParaTexto, pedidosNoPeriodo, textoParaMetas, serieMensal, somaValor, ultimaCompraMap } from '../lib/metrics'
+import { ativacao, carteira, faturamentoBI, mapaFechamentos, curvaABC, debitosPorCliente, devolucoesValidas, leadsNoPeriodo, metaPessoa, metasParaTexto, pedidosNoPeriodo, textoParaMetas, serieMensal, somaValor, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
-import { diffDays, inRange, today } from '../lib/dates'
+import { diffDays, inRange, today, monthsBetween } from '../lib/dates'
 import { CARGO, REGIOES } from '../data/labels'
 import { IcEdit, IcPlus } from '../components/Icons'
 
 const FIELDS: Field[] = [
   { name: 'nome', label: 'Nome', required: true },
   { name: 'cargo', label: 'Cargo', type: 'select', options: opts(CARGO), required: true },
-  { name: 'regiao', label: 'Região / carteira', placeholder: 'Ex.: Capital SP — Zona Sul' },
+  { name: 'time', label: 'Showroom (time)', placeholder: 'Showroom São Paulo', help: 'Agrupa a equipe na visão por showroom e no filtro do topo.' },
+  { name: 'regiao', label: 'Unidade / carteira', placeholder: 'Ex.: Loja São Paulo BG' },
   { name: 'email', label: 'E-mail', type: 'email' },
   { name: 'telefone', label: 'Telefone', type: 'tel' },
   { name: 'metaMensal', label: 'Meta de faturamento mensal (R$)', type: 'number' },
@@ -27,6 +28,7 @@ export default function Equipe() {
   const [edit, setEdit] = useState<Colaborador | null>(null)
   const [sel, setSel] = useState<string>(db.colaboradores.find((c) => c.cargo !== 'analista')?.id || '')
   const [filtro, setFiltro] = useState<'todos' | 'vendedora' | 'representante' | 'analista'>('todos')
+  const [visao, setVisao] = useState<'showroom' | 'pessoas'>('showroom')
 
   const linhas = useMemo(() => {
     const deb = debitosPorCliente(db)
@@ -58,9 +60,13 @@ export default function Equipe() {
         actions={<button className="btn primary" onClick={() => setEdit({ id: newId('col'), nome: '', cargo: 'vendedora', regiao: '', email: '', telefone: '', metaMensal: 0, metaAtivacao: db.config.metaAtivacao, ativo: true })}><IcPlus /> Novo colaborador</button>}
       />
       <div className="toolbar">
-        <Segmented value={filtro} onChange={setFiltro} options={[{ value: 'todos', label: 'Todos' }, { value: 'vendedora', label: 'Vendedoras' }, { value: 'representante', label: 'Representantes' }, { value: 'analista', label: 'Analista' }]} />
+        <Segmented value={visao} onChange={setVisao} options={[{ value: 'showroom', label: 'Por showroom' }, { value: 'pessoas', label: 'Por pessoa' }]} />
+        {visao === 'pessoas' && <Segmented value={filtro} onChange={setFiltro} options={[{ value: 'todos', label: 'Todos' }, { value: 'vendedora', label: 'Vendedoras' }, { value: 'representante', label: 'Representantes' }, { value: 'analista', label: 'Analista' }]} />}
       </div>
 
+      {visao === 'showroom' && <PorShowroom onPessoa={(id) => { setSel(id); setVisao('pessoas') }} />}
+
+      {visao === 'pessoas' && <>
       <div className="grid g-3">
         {linhas.map(({ c, ped, fat, meta, at, dev, rec, vencido, leads }) => {
           const falta = Math.max(0, Math.ceil(at.base * c.metaAtivacao) - at.ativos)
@@ -112,6 +118,7 @@ export default function Equipe() {
       <Matriz />
 
       {atual && atual.cargo !== 'analista' && <Detalhe colaboradorId={atual.id} />}
+      </>}
 
       {edit && (
         <FormModal
@@ -123,6 +130,74 @@ export default function Equipe() {
           onDelete={db.colaboradores.some((c) => c.id === edit.id) ? () => { remove('colaboradores', edit.id); setEdit(null) } : undefined}
         />
       )}
+    </>
+  )
+}
+
+/** Resultado por showroom, no formato do painel do BI: um bloco por time, com total. */
+function PorShowroom({ onPessoa }: { onPessoa: (id: string) => void }) {
+  const { db, periodo } = useStore()
+  const blocos = useMemo(() => {
+    const meses = monthsBetween(periodo.inicio, periodo.fim)
+    const fech = meses.length === 1 ? mapaFechamentos(db).get(meses[0]) : undefined
+    const linhas = db.colaboradores.filter((c) => c.cargo !== 'analista').map((c) => {
+      const at = ativacao(db, periodo, c.id)
+      const meta70 = fech?.get(c.id)?.meta70 ?? Math.floor(at.base * c.metaAtivacao)
+      return { c, fat: faturamentoBI(db, periodo, c.id), meta: metaPessoa(c, periodo), base: at.base, meta70, realizado: at.ativos }
+    }).filter((l) => l.fat || l.meta || l.base)
+    const times = new Map<string, typeof linhas>()
+    linhas.forEach((l) => { const t = l.c.time || 'Sem showroom'; times.set(t, [...(times.get(t) || []), l]) })
+    return Array.from(times.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([time, ls]) => {
+      const soma = (k: 'fat' | 'meta' | 'base' | 'meta70' | 'realizado') => ls.reduce((s, l) => s + l[k], 0)
+      return { time, linhas: ls.sort((a, b) => b.realizado - a.realizado || b.fat - a.fat), fat: soma('fat'), meta: soma('meta'), base: soma('base'), meta70: soma('meta70'), realizado: soma('realizado') }
+    })
+  }, [db, periodo])
+  if (!blocos.length) return <div className="empty">Sem resultados no período.</div>
+  const totalFat = blocos.reduce((s, b) => s + b.fat, 0)
+  const totalMeta = blocos.reduce((s, b) => s + b.meta, 0)
+  return (
+    <>
+      {blocos.length > 1 && (
+        <div className={`kpi-strip k${Math.min(5, blocos.length + 1)}`} style={{ marginBottom: 20 }}>
+          {blocos.map((b) => (
+            <Kpi key={b.time} label={b.time} value={money(b.fat)} foot={<>{pct(safeDiv(b.fat, b.meta))} da meta de {money(b.meta)} · ativação {b.realizado}/{b.base}</>}>
+              <Meter value={safeDiv(b.fat, b.meta)} target={1} />
+            </Kpi>
+          ))}
+          <Kpi label="Todos os showrooms" value={money(totalFat)} foot={<>{pct(safeDiv(totalFat, totalMeta))} da meta de {money(totalMeta)}</>}><Meter value={safeDiv(totalFat, totalMeta)} target={1} /></Kpi>
+        </div>
+      )}
+      {blocos.map((b) => (
+        <Card key={b.time} className="mt" title={b.time} sub={`${periodo.label} · faturamento pela vendedora da venda (fechamento do BI nos meses fechados)`}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Vendedor</th><th className="num">Faturamento</th><th className="num">Meta</th><th className="num">Atingimento</th><th className="num">Base abertura</th><th className="num">Meta 70%</th><th className="num">Realizado</th></tr></thead>
+              <tbody>
+                {b.linhas.map((l) => (
+                  <tr key={l.c.id} style={{ cursor: 'pointer' }} onClick={() => onPessoa(l.c.id)}>
+                    <td>{l.c.nome}</td>
+                    <td className="num">{money(l.fat)}</td>
+                    <td className="num">{money(l.meta)}</td>
+                    <td className="num">{l.meta ? <Badge tone={l.fat >= l.meta ? 'good' : 'bad'}>{pct(safeDiv(l.fat, l.meta))}</Badge> : '—'}</td>
+                    <td className="num">{l.base}</td>
+                    <td className="num">{l.meta70}</td>
+                    <td className="num">{l.base ? <Badge tone={l.realizado >= l.meta70 ? 'good' : 'bad'}>{l.realizado}</Badge> : l.realizado || '—'}</td>
+                  </tr>
+                ))}
+                <tr className="total">
+                  <td><b>Total</b></td>
+                  <td className="num"><b>{money(b.fat)}</b></td>
+                  <td className="num"><b>{money(b.meta)}</b></td>
+                  <td className="num"><b>{pct(safeDiv(b.fat, b.meta))}</b></td>
+                  <td className="num"><b>{b.base}</b></td>
+                  <td className="num"><b>{b.meta70}</b></td>
+                  <td className="num"><b>{b.realizado}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ))}
     </>
   )
 }

@@ -4,7 +4,7 @@ import { StoreProvider, useStore } from './data/store'
 import { PRESETS, type PresetPeriodo, today, addDays } from './lib/dates'
 import { date, MESES_LONGOS } from './lib/format'
 import { quedasPrevistas } from './lib/metrics'
-import { chaveUnidade, filtroAtivo, regioes, unidades } from './lib/filtros'
+import { chaveUnidade, filtroAtivo, regioes, showrooms, unidades } from './lib/filtros'
 
 const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
 const hojeExtenso = () => {
@@ -134,12 +134,18 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
 function FiltrosGlobais() {
   const { dbArea, filtros, setFiltros } = useStore()
   const equipe = dbArea.colaboradores
-    .filter((c) => c.cargo !== 'analista' && (!filtros.unidade || chaveUnidade(c.regiao || '') === filtros.unidade))
+    .filter((c) => c.cargo !== 'analista' && (!filtros.unidade || chaveUnidade(c.regiao || '') === filtros.unidade) && (!filtros.showroom || c.time === filtros.showroom))
     .sort((a, b) => a.nome.localeCompare(b.nome))
   const ativo = filtroAtivo(filtros)
   return (
     <div className={`filtros-bar ${ativo ? 'ativo' : ''}`}>
       <span className="rotulo">Filtrar</span>
+      {showrooms(dbArea).length > 1 && (
+        <select className="input" value={filtros.showroom || ''} onChange={(e) => setFiltros({ ...filtros, showroom: e.target.value || undefined, vendedora: undefined })} aria-label="Showroom">
+          <option value="">Todos os showrooms</option>
+          {showrooms(dbArea).map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      )}
       <select className="input" value={filtros.vendedora || ''} onChange={(e) => setFiltros({ ...filtros, vendedora: e.target.value || undefined })} aria-label="Vendedora">
         <option value="">Toda a equipe</option>
         {equipe.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}

@@ -5,12 +5,16 @@ import type { Cliente, Database } from '../data/types'
 import { ehCapitalSP, macroRegiao, regiaoPorUF, REGIOES } from '../data/labels'
 
 export interface Filtros {
+  showroom?: string
   vendedora?: string
   unidade?: string
   regiao?: string
 }
 
-export const filtroAtivo = (f: Filtros) => !!(f.vendedora || f.unidade || f.regiao)
+export const filtroAtivo = (f: Filtros) => !!(f.showroom || f.vendedora || f.unidade || f.regiao)
+
+/** Showrooms (times) cadastrados na equipe. */
+export const showrooms = (db: Database) => Array.from(new Set(db.colaboradores.map((c) => c.time).filter(Boolean) as string[])).sort()
 
 export const chaveUnidade = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
@@ -43,9 +47,9 @@ export function noLocal(regiao: string, cidade: string, uf: string, regiaoCadast
 
 /** Ids das pessoas da equipe que passam no filtro de vendedora e de unidade (null = todas). */
 export function equipeFiltrada(db: Database, f: Filtros): Set<string> | null {
-  if (!f.vendedora && !f.unidade) return null
+  if (!f.vendedora && !f.unidade && !f.showroom) return null
   return new Set(db.colaboradores
-    .filter((c) => (!f.vendedora || c.id === f.vendedora) && (!f.unidade || chaveUnidade(c.regiao || '') === f.unidade))
+    .filter((c) => (!f.vendedora || c.id === f.vendedora) && (!f.unidade || chaveUnidade(c.regiao || '') === f.unidade) && (!f.showroom || c.time === f.showroom))
     .map((c) => c.id))
 }
 

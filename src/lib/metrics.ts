@@ -77,7 +77,15 @@ export function metaDoPeriodo(metaMensal: number, p: Periodo, porMes?: Record<st
 }
 export const metaDoMes = (metaMensal: number, porMes: Record<string, number> | undefined, mes: string) => porMes?.[mes] ?? metaMensal
 export const metaPessoa = (c: Colaborador, p: Periodo) => metaDoPeriodo(c.metaMensal, p, c.metasMes)
-export const metaShowroom = (db: Database, p: Periodo) => metaDoPeriodo(db.config.metaFaturamentoMensal, p, db.config.metasMes)
+/**
+ * Meta do time no período: em cada mês, a soma das metas mensais da equipe quando há metas por pessoa
+ * cadastradas para o mês (assim vale para um showroom, os dois ou uma vendedora); senão, a meta da configuração.
+ */
+export function metaTimeMes(db: Database, m: string) {
+  const porPessoa = db.colaboradores.some((c) => c.metasMes?.[m] !== undefined)
+  return porPessoa ? db.colaboradores.reduce((t, c) => t + (c.metasMes?.[m] ?? 0), 0) : metaDoMes(db.config.metaFaturamentoMensal, db.config.metasMes, m)
+}
+export const metaShowroom = (db: Database, p: Periodo) => monthsBetween(p.inicio, p.fim).reduce((s, m) => s + metaTimeMes(db, m), 0)
 
 /** Metas por mês em texto editável: uma linha "09/2026: 360000" por mês. */
 export const metasParaTexto = (porMes?: Record<string, number>) =>
@@ -194,7 +202,7 @@ export function serieMensal(db: Database, meses = 12, colaboradorId?: string) {
     dev.set(k, 0)
   })
   const pessoa = colaboradorId ? db.colaboradores.find((c) => c.id === colaboradorId) : undefined
-  const meta = (k: string) => colaboradorId ? metaDoMes(pessoa?.metaMensal || 0, pessoa?.metasMes, k) : metaDoMes(db.config.metaFaturamentoMensal, db.config.metasMes, k)
+  const meta = (k: string) => colaboradorId ? metaDoMes(pessoa?.metaMensal || 0, pessoa?.metasMes, k) : metaTimeMes(db, k)
   return keys.map((k) => ({ mes: k, faturamento: fat.get(k)!, devolucoes: dev.get(k)!, meta: meta(k) }))
 }
 

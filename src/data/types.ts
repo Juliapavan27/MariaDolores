@@ -8,6 +8,8 @@ export interface Colaborador {
   nome: string
   cargo: Cargo
   regiao: string
+  /** Showroom (time) a que a pessoa pertence, ex.: "Showroom São Paulo", "Showroom Curitiba". */
+  time?: string
   email: string
   telefone: string
   metaMensal: number // meta de faturamento mensal (R$)
