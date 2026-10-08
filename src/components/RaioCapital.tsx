@@ -4,6 +4,7 @@ import type { Cliente } from '../data/types'
 import { Badge, Card, DataTable, FormModal, StatRow } from './ui'
 import { janelaRaio, lerLocalizacao, raiosCapital, regraRaio, verificarPonto, type Ponto, type RaioRevenda } from '../lib/raio'
 import { km, money } from '../lib/format'
+import { equipeFiltrada, passaCliente } from '../lib/filtros'
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const mesAno = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]}/${iso.slice(2, 4)}`
@@ -16,12 +17,17 @@ const FAIXA: Record<RaioRevenda['faixa'], { tone: 'good' | 'warn' | 'bad'; label
 
 /** Exclusividade em SP capital: raio por endereço, revisto pelas compras dos últimos meses fechados. */
 export function RaioCapital() {
-  const { db, upsert } = useStore()
+  const { db, dbArea, filtros, upsert } = useStore()
   const [texto, setTexto] = useState('')
   const [editar, setEditar] = useState<Cliente | null>(null)
   const regra = regraRaio(db.config)
   const janela = janelaRaio(regra)
-  const raios = useMemo(() => raiosCapital(db), [db])
+  // todas as revendas da área contam para o raio; o filtro só escolhe quem aparece na tabela
+  const raios = useMemo(() => raiosCapital(dbArea), [dbArea])
+  const visiveis = useMemo(() => {
+    const equipe = equipeFiltrada(dbArea, filtros)
+    return raios.filter((r) => passaCliente(r.cliente, filtros, equipe))
+  }, [raios, dbArea, filtros])
   const ponto = lerLocalizacao(texto)
   const resultado = ponto ? verificarPonto(raios, ponto) : null
   const semLocal = raios.filter((r) => !r.ponto)
@@ -82,7 +88,7 @@ export function RaioCapital() {
       </div>
 
       <h4 style={{ margin: '18px 0 6px', fontSize: 13 }}>Revendas da capital</h4>
-      <DataTable rows={raios.map((r) => ({ ...r, id: r.cliente.id }))} onRowClick={(r) => setEditar(r.cliente)} initialSort={{ key: 'compras', dir: 1 }} columns={[
+      <DataTable rows={visiveis.map((r) => ({ ...r, id: r.cliente.id }))} onRowClick={(r) => setEditar(r.cliente)} initialSort={{ key: 'compras', dir: 1 }} columns={[
         { key: 'nome', label: 'Revenda', value: (r) => r.cliente.nome, render: (r) => <><div className="strong">{r.cliente.nome}</div><div className="small muted">{r.cliente.endereco || r.cliente.cidade}</div></> },
         { key: 'compras', label: `Compras ${mesAno(janela.inicio)}–${mesAno(janela.fim)}`, num: true, value: (r) => r.compras, render: (r) => money(r.compras) },
         { key: 'raio', label: 'Raio', num: true, value: (r) => r.raioKm, render: (r) => km(r.raioKm) },

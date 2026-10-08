@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Cliente, Colecao, Configuracoes, Database, Lead } from './types'
 import { foraDaArea } from './labels'
+import { aplicarFiltros, type Filtros } from '../lib/filtros'
 import { buildSeed, emptyDatabase } from './seed'
 import { periodo as buildPeriodo, type Periodo, type PresetPeriodo } from '../lib/dates'
 import { useCapability, type DbError, type SharedDB, type UserCap } from '../lib/claude'
@@ -27,8 +28,12 @@ export interface ForaDaArea {
 }
 
 interface StoreValue {
-  /** Só a área do Showroom SP (Sudeste e Nordeste). */
+  /** Área do Showroom SP (Sudeste e Nordeste) com o filtro global aplicado. */
   db: Database
+  /** Área do Showroom SP sem o filtro global: exclusividade e raios usam todas as revendas. */
+  dbArea: Database
+  filtros: Filtros
+  setFiltros: (f: Filtros) => void
   /** Base inteira, inclusive o que está fora da área (backup e importação). */
   dbCompleto: Database
   foraArea: ForaDaArea
@@ -121,6 +126,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const sharedRef = useRef<SharedDB | null>(null)
   const sharedState = useRef(shared)
   sharedState.current = shared
+  const [filtros, setFiltrosState] = useState<Filtros>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY + ':filtros') || '{}') as Filtros
+    } catch {
+      return {}
+    }
+  })
+  const setFiltros = useCallback((f: Filtros) => {
+    setFiltrosState(f)
+    try { localStorage.setItem(STORAGE_KEY + ':filtros', JSON.stringify(f)) } catch { /* só não lembra o filtro */ }
+  }, [])
   const [presetPeriodo, setPresetPeriodo] = useState<PresetPeriodo>(() => {
     try {
       return (localStorage.getItem(STORAGE_KEY + ':periodo') as PresetPeriodo) || 'mes'
@@ -290,10 +306,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const dbCompleto = naEquipe ? shared : local
   const area = useMemo(() => separarArea(dbCompleto), [dbCompleto])
+  const filtrado = useMemo(() => aplicarFiltros(area.db, filtros), [area, filtros])
 
   const value = useMemo<StoreValue>(
     () => ({
-      db: area.db,
+      db: filtrado,
+      dbArea: area.db,
+      filtros,
+      setFiltros,
       dbCompleto,
       foraArea: area.fora,
       modo,
@@ -317,7 +337,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearAll,
       iniciarBaseEquipe,
     }),
-    [area, dbCompleto, verExemplos, local, modo, podeEditar, progresso, aviso, presetPeriodo, upsert, bulkUpsert, remove, setConfig, replaceAll, clearAll, iniciarBaseEquipe],
+    [area, filtrado, filtros, setFiltros, dbCompleto, verExemplos, local, modo, podeEditar, progresso, aviso, presetPeriodo, upsert, bulkUpsert, remove, setConfig, replaceAll, clearAll, iniciarBaseEquipe],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

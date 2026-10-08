@@ -4,7 +4,7 @@ import type { Colaborador } from '../data/types'
 import { Avatar, Badge, Card, DataTable, FormModal, Meter, PageHead, Segmented, StatRow, opts, type Field } from '../components/ui'
 import { RevenueChart } from '../components/charts'
 import { indicadoresCarteira } from '../lib/carteira'
-import { ativacao, carteira, curvaABC, debitosPorCliente, devolucoesValidas, leadsNoPeriodo, metaDoPeriodo, pedidosNoPeriodo, serieMensal, somaValor, ultimaCompraMap } from '../lib/metrics'
+import { ativacao, carteira, curvaABC, debitosPorCliente, devolucoesValidas, leadsNoPeriodo, metaPessoa, metasParaTexto, pedidosNoPeriodo, textoParaMetas, serieMensal, somaValor, ultimaCompraMap } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
 import { diffDays, inRange, today } from '../lib/dates'
 import { CARGO, REGIOES } from '../data/labels'
@@ -17,6 +17,7 @@ const FIELDS: Field[] = [
   { name: 'email', label: 'E-mail', type: 'email' },
   { name: 'telefone', label: 'Telefone', type: 'tel' },
   { name: 'metaMensal', label: 'Meta de faturamento mensal (R$)', type: 'number' },
+  { name: 'metasMesTexto', label: 'Metas de meses específicos', type: 'textarea', placeholder: '09/2026: 360000\n10/2026: 380000', help: 'Uma linha por mês. Nos meses sem linha vale a meta mensal acima.' },
   { name: 'metaAtivacao', label: 'Meta de ativação da carteira (0 a 1)', type: 'number', step: '0.01', help: '0,70 = 70% da base comprando no período' },
   { name: 'ativo', label: 'Ativo', type: 'checkbox', placeholder: 'Colaborador ativo' },
 ]
@@ -34,7 +35,7 @@ export default function Equipe() {
       .map((c) => {
         const ped = pedidosNoPeriodo(db, periodo, c.id)
         const fat = somaValor(ped)
-        const meta = metaDoPeriodo(c.metaMensal, periodo)
+        const meta = metaPessoa(c, periodo)
         const at = ativacao(db, periodo, c.id)
         const cart = carteira(db, c.id)
         const ids = new Set(cart.map((x) => x.id))
@@ -116,9 +117,9 @@ export default function Equipe() {
         <FormModal
           title={db.colaboradores.some((c) => c.id === edit.id) ? 'Editar colaborador' : 'Novo colaborador'}
           fields={FIELDS.map((f) => (f.name === 'regiao' ? { ...f, type: 'text', help: `Sugestões: ${REGIOES.slice(0, 3).join(', ')}…` } : f))}
-          initial={edit}
+          initial={{ ...edit, metasMesTexto: metasParaTexto(edit.metasMes) }}
           onClose={() => setEdit(null)}
-          onSave={(v) => { upsert('colaboradores', v); setEdit(null) }}
+          onSave={({ metasMesTexto, ...v }) => { upsert('colaboradores', { ...v, metasMes: textoParaMetas(metasMesTexto) }); setEdit(null) }}
           onDelete={db.colaboradores.some((c) => c.id === edit.id) ? () => { remove('colaboradores', edit.id); setEdit(null) } : undefined}
         />
       )}
@@ -164,7 +165,7 @@ function Matriz() {
   const ritmo = periodo.fim > today() ? safeDiv(diffDays(today(), periodo.inicio) + 1, diffDays(periodo.fim, periodo.inicio) + 1) : 1
   const pessoas = useMemo(() => db.colaboradores.filter((c) => c.cargo !== 'analista' && c.ativo).map((c) => {
     const fat = somaValor(pedidosNoPeriodo(db, periodo, c.id))
-    const ating = safeDiv(fat, metaDoPeriodo(c.metaMensal, periodo) * ritmo)
+    const ating = safeDiv(fat, metaPessoa(c, periodo) * ritmo)
     const at = ativacao(db, periodo, c.id)
     const ind = indicadoresCarteira(db, periodo, c.id)
     const trabalhada = at.taxa >= c.metaAtivacao * ritmo * 0.8 || (ind.atendimentos > 0 && ind.followUpNoPrazo >= 0.8)

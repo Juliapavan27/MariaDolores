@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { DEFAULT_CONFIG } from '../data/seed'
 import { useStore } from '../data/store'
 import type { Configuracoes as Cfg, Database } from '../data/types'
 import { Card, ConfirmButton, PageHead, StatRow } from '../components/ui'
@@ -6,6 +7,7 @@ import { download, exportCSV } from '../lib/csv'
 import { today } from '../lib/dates'
 import { int, money, pct } from '../lib/format'
 import { AREA_SHOWROOM, macroRegiao } from '../data/labels'
+import { metasParaTexto, textoParaMetas } from '../lib/metrics'
 import { IcDownload, IcUpload } from '../components/Icons'
 
 const CAMPOS: { k: keyof Cfg; label: string; type: 'text' | 'number'; step?: string; help?: string }[] = [
@@ -27,15 +29,18 @@ const CAMPOS: { k: keyof Cfg; label: string; type: 'text' | 'number'; step?: str
 ]
 
 export default function Configuracoes() {
-  const { db, dbCompleto, foraArea, modo, setConfig, replaceAll, resetDemo, clearAll } = useStore()
-  const [form, setForm] = useState<Cfg>(db.config)
+  const { db, dbArea, dbCompleto, foraArea, modo, setConfig, replaceAll, resetDemo, clearAll } = useStore()
+  // configuração real (sem o filtro global, que troca a meta pela soma das metas filtradas)
+  const cfg = useMemo(() => ({ ...DEFAULT_CONFIG, ...dbArea.config }), [dbArea.config])
+  const [form, setForm] = useState<Cfg>(cfg)
   const [msg, setMsg] = useState('')
+  const [metasTexto, setMetasTexto] = useState(metasParaTexto(cfg.metasMes))
   const fileRef = useRef<HTMLInputElement>(null)
 
   // a configuração da base da equipe chega depois do primeiro desenho
-  useEffect(() => setForm(db.config), [db.config])
+  useEffect(() => { setForm(cfg); setMetasTexto(metasParaTexto(cfg.metasMes)) }, [cfg])
 
-  const salvar = () => { setConfig(form); setMsg('Configurações salvas.') }
+  const salvar = () => { setConfig({ ...form, metasMes: textoParaMetas(metasTexto) }); setMsg('Configurações salvas.') }
   const importar = async (f: File) => {
     try {
       const data = JSON.parse(await f.text()) as Database
@@ -63,6 +68,11 @@ export default function Configuracoes() {
                 {c.help && <span className="small muted">{c.help}</span>}
               </div>
             ))}
+            <div className="field full">
+              <label htmlFor="metasMes">Meta do showroom em meses específicos</label>
+              <textarea id="metasMes" className="input" rows={3} placeholder={'09/2026: 2650000'} value={metasTexto} onChange={(e) => setMetasTexto(e.target.value)} />
+              <span className="small muted">Uma linha por mês. Nos meses sem linha vale a meta mensal do showroom.</span>
+            </div>
           </div>
           <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
             <button className="btn primary" onClick={salvar}>Salvar</button>
@@ -99,8 +109,8 @@ export default function Configuracoes() {
               O showroom responde pelas regiões <b>{AREA_SHOWROOM.join(' e ')}</b>. Revendas e leads de outras UFs continuam guardados na base,
               mas ficam fora das telas, das metas e da ativação.
             </p>
-            <StatRow label="Revendas na área" value={int(db.clientes.length)} />
-            <StatRow label="Revendas sem UF (confirmar no cadastro)" value={int(db.clientes.filter((c) => !c.uf).length)} />
+            <StatRow label="Revendas na área" value={int(dbArea.clientes.length)} />
+            <StatRow label="Revendas sem UF (confirmar no cadastro)" value={int(dbArea.clientes.filter((c) => !c.uf).length)} />
             <StatRow label="Revendas fora da área" value={int(foraArea.clientes.length)} />
             <StatRow label="Faturamento dessas revendas fora da área" value={money(foraArea.faturamento)} />
             <StatRow label="Leads fora da área" value={int(foraArea.leads.length)} />

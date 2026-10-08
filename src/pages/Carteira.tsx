@@ -13,7 +13,7 @@ import { exportCSV } from '../lib/csv'
 import { IcDownload, IcPlus } from '../components/Icons'
 
 export default function Carteira() {
-  const { db, periodo, upsert, remove } = useStore()
+  const { db, dbArea, periodo, upsert, remove } = useStore()
   const [ver, setVer] = useState<Cliente | null>(null)
   const [edit, setEdit] = useState<Cliente | null>(null)
   const [resp, setResp] = useState('')
@@ -157,7 +157,7 @@ export default function Carteira() {
           initial={edit}
           onClose={() => setEdit(null)}
           onSave={(v) => { upsert('clientes', v); setEdit(null) }}
-          validate={(v) => validarRaio(db, v)}
+          validate={(v) => validarRaio(dbArea, v)}
           onDelete={db.clientes.some((c) => c.id === edit.id) ? () => { remove('clientes', edit.id); setEdit(null) } : undefined}
         />
       )}

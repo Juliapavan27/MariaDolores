@@ -62,7 +62,7 @@ export const statusTone = (s: Cliente['status']) => (s === 'ativa' ? 'good' : s 
 type Aba = 'resumo' | 'ficha' | 'pedidos' | 'financeiro' | 'posvenda' | 'relacionamento'
 
 export function Cliente360({ cliente: inicial, onClose, onEdit }: { cliente: Cliente; onClose: () => void; onEdit?: () => void }) {
-  const { db, upsert } = useStore()
+  const { db, dbArea, upsert } = useStore()
   const cliente = db.clientes.find((c) => c.id === inicial.id) || inicial
   const [aba, setAba] = useState<Aba>('resumo')
   const [editFicha, setEditFicha] = useState(false)
@@ -83,9 +83,9 @@ export function Cliente360({ cliente: inicial, onClose, onEdit }: { cliente: Cli
       total: validos.reduce((s, p) => s + p.valor, 0),
       ultima: ultimaCompraMap(db).get(cliente.id),
       curva: curvaABC(db).get(cliente.id) || 'C',
-      raio: ehCapitalSP(cliente.cidade, cliente.uf) ? raiosCapital(db).find((r) => r.cliente.id === cliente.id) : undefined,
+      raio: ehCapitalSP(cliente.cidade, cliente.uf) ? raiosCapital(dbArea).find((r) => r.cliente.id === cliente.id) : undefined,
     }
-  }, [db, cliente.id])
+  }, [db, dbArea, cliente.id])
 
   return (
     <Modal

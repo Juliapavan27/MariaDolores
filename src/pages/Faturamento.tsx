@@ -3,7 +3,7 @@ import { newId, useStore } from '../data/store'
 import type { Pedido } from '../data/types'
 import { Badge, Card, DataTable, FormModal, Kpi, Meter, PageHead, Person, opts, useSearch } from '../components/ui'
 import { HBars, RevenueChart, useChartColors } from '../components/charts'
-import { devolucoesValidas, metaDoPeriodo, pedidosNoPeriodo, serieMensal, somaValor } from '../lib/metrics'
+import { devolucoesValidas, metaShowroom, pedidosNoPeriodo, serieMensal, somaValor } from '../lib/metrics'
 import { date, money, pct, safeDiv, int } from '../lib/format'
 import { addDays, inRange, today } from '../lib/dates'
 import { CANAL, STATUS_PEDIDO } from '../data/labels'
@@ -32,7 +32,7 @@ export default function Faturamento() {
     }
     return {
       ped, todos, bruto, dev, pend,
-      meta: metaDoPeriodo(db.config.metaFaturamentoMensal, periodo),
+      meta: metaShowroom(db, periodo),
       pecas: ped.reduce((s, p) => s + p.pecas, 0),
       porCanal: agrupa((p) => CANAL[p.canal]),
       porColecao: agrupa((p) => p.colecao),

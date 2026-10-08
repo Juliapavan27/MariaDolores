@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useStore } from '../data/store'
 import { Card, Meter, PageHead, StatRow } from '../components/ui'
-import { carteira, pedidosNoPeriodo, somaValor } from '../lib/metrics'
+import { carteira, pedidosNoPeriodo, somaValor, metaDoMes } from '../lib/metrics'
 import { lerCarteira } from '../lib/carteira'
 import { periodo as criarPeriodo } from '../lib/dates'
 import { money, pct, int, safeDiv, MESES_LONGOS } from '../lib/format'
@@ -22,7 +22,9 @@ export default function Simulador() {
     const fat = somaValor(ped)
     const base = carteira(db, quem || undefined).length
     const inativas = lerCarteira(db, quem || undefined).filter((l) => l.grupo === 'inativa' || l.grupo === 'risco').length
-    const meta = quem ? db.colaboradores.find((c) => c.id === quem)?.metaMensal || 0 : db.config.metaFaturamentoMensal
+    const pessoa = quem ? db.colaboradores.find((c) => c.id === quem) : undefined
+    const mesRef = p.inicio.slice(0, 7)
+    const meta = quem ? metaDoMes(pessoa?.metaMensal || 0, pessoa?.metasMes, mesRef) : metaDoMes(db.config.metaFaturamentoMensal, db.config.metasMes, mesRef)
     const mes = MESES_LONGOS[Number(p.inicio.slice(5, 7)) - 1].toLowerCase()
     return { clientes, fat, ticket: Math.round(safeDiv(fat, clientes) / 100) * 100 || 5000, base: Math.max(base, clientes, 1), inativas, meta, mes }
   }, [db, quem])

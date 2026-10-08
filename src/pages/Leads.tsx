@@ -18,7 +18,7 @@ export const terrTone = (s?: LinhaTerritorio['status']) =>
   s === 'disponivel' || s === 'prioritaria' ? 'good' : s === 'vai_liberar' ? 'warn' : s === 'ocupada' || s === 'bloqueada' ? 'bad' : s === 'reservada' || s === 'por_raio' ? 'info' : undefined
 
 export default function Leads() {
-  const { db, periodo, upsert, remove, bulkUpsert } = useStore()
+  const { db, dbArea, periodo, upsert, remove, bulkUpsert } = useStore()
   const [view, setView] = useState<'funil' | 'lista' | 'analise'>('funil')
   const [edit, setEdit] = useState<Lead | null>(null)
   const [origem, setOrigem] = useState('')
@@ -30,9 +30,9 @@ export default function Leads() {
 
   const mapa = useMemo(() => {
     const m = new Map<string, LinhaTerritorio>()
-    territorios(db).forEach((t) => m.set(t.chave, t))
+    territorios(dbArea).forEach((t) => m.set(t.chave, t))
     return m
-  }, [db])
+  }, [dbArea])
   const terr = useCallback((l: Lead) => mapa.get(`${l.cidade.trim().toLowerCase()}|${l.uf}`), [mapa])
 
   const doPeriodo = leadsNoPeriodo(db, periodo)

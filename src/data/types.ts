@@ -11,6 +11,8 @@ export interface Colaborador {
   email: string
   telefone: string
   metaMensal: number // meta de faturamento mensal (R$)
+  /** Meta específica de um mês ('AAAA-MM' → R$); vale a metaMensal nos meses sem valor. */
+  metasMes?: Record<string, number>
   metaAtivacao: number // fração da carteira a ativar (0.7 = 70%)
   ativo: boolean
 }
@@ -263,6 +265,8 @@ export interface Tarefa {
 export interface Configuracoes {
   nomeUnidade: string
   metaFaturamentoMensal: number
+  /** Meta do showroom em meses específicos ('AAAA-MM' → R$). */
+  metasMes?: Record<string, number>
   metaAtivacao: number
   investimentoMidiaMensal: number
   divisaoMeta: number // fração do investimento para Meta (0.5)

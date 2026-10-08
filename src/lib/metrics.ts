@@ -1,4 +1,4 @@
-import type { Cliente, Configuracoes, Curva, Database, Lead, Pedido, Titulo } from '../data/types'
+import type { Cliente, Colaborador, Configuracoes, Curva, Database, Lead, Pedido, Titulo } from '../data/types'
 import { addDays, addMonths, diffDays, inRange, mesesNoPeriodo, monthsBetween, startOfMonth, today, ym, type Periodo } from './dates'
 import { CIDADES_ALVO } from '../data/seed'
 import { ehCapitalSP, regiaoPorUF } from '../data/labels'
@@ -24,8 +24,27 @@ export function ativacao(db: Database, p: Periodo, colaboradorId?: string) {
   return { base: base.length, ativos: ativos.length, taxa: safeDiv(ativos.length, base.length), inativos: base.filter((c) => !compraram.has(c.id)) }
 }
 
-export function metaDoPeriodo(metaMensal: number, p: Periodo) {
-  return metaMensal * mesesNoPeriodo(p)
+/** Meta do período: soma mês a mês, usando a meta específica do mês quando existe. */
+export function metaDoPeriodo(metaMensal: number, p: Periodo, porMes?: Record<string, number>) {
+  if (!porMes) return metaMensal * mesesNoPeriodo(p)
+  return monthsBetween(p.inicio, p.fim).reduce((s, m) => s + (porMes[m] ?? metaMensal), 0)
+}
+export const metaDoMes = (metaMensal: number, porMes: Record<string, number> | undefined, mes: string) => porMes?.[mes] ?? metaMensal
+export const metaPessoa = (c: Colaborador, p: Periodo) => metaDoPeriodo(c.metaMensal, p, c.metasMes)
+export const metaShowroom = (db: Database, p: Periodo) => metaDoPeriodo(db.config.metaFaturamentoMensal, p, db.config.metasMes)
+
+/** Metas por mês em texto editável: uma linha "09/2026: 360000" por mês. */
+export const metasParaTexto = (porMes?: Record<string, number>) =>
+  Object.entries(porMes || {}).sort().map(([m, v]) => `${m.slice(5, 7)}/${m.slice(0, 4)}: ${v}`).join('\n')
+export function textoParaMetas(texto?: string): Record<string, number> | undefined {
+  const out: Record<string, number> = {}
+  ;(texto || '').split(/\n|;/).forEach((linha) => {
+    const m = linha.match(/(\d{1,2})\s*\/\s*(\d{4})\s*[:=]\s*(?:R\$)?\s*([\d.,]+)/i)
+    if (!m) return
+    const valor = Number(m[3].includes(',') ? m[3].replace(/\./g, '').replace(',', '.') : m[3].replace(/\.(?=\d{3}(\D|$))/g, ''))
+    if (Number.isFinite(valor)) out[`${m[2]}-${m[1].padStart(2, '0')}`] = valor
+  })
+  return Object.keys(out).length ? out : undefined
 }
 
 export function devolucoesValidas(db: Database) {
@@ -120,8 +139,9 @@ export function serieMensal(db: Database, meses = 12, colaboradorId?: string) {
     const k = ym(d.data)
     if (dev.has(k)) dev.set(k, dev.get(k)! + d.valor)
   })
-  const metaMensal = colaboradorId ? db.colaboradores.find((c) => c.id === colaboradorId)?.metaMensal || 0 : db.config.metaFaturamentoMensal
-  return keys.map((k) => ({ mes: k, faturamento: fat.get(k)!, devolucoes: dev.get(k)!, meta: metaMensal }))
+  const pessoa = colaboradorId ? db.colaboradores.find((c) => c.id === colaboradorId) : undefined
+  const meta = (k: string) => colaboradorId ? metaDoMes(pessoa?.metaMensal || 0, pessoa?.metasMes, k) : metaDoMes(db.config.metaFaturamentoMensal, db.config.metasMes, k)
+  return keys.map((k) => ({ mes: k, faturamento: fat.get(k)!, devolucoes: dev.get(k)!, meta: meta(k) }))
 }
 
 // ---------- Revendas que vão cair ----------

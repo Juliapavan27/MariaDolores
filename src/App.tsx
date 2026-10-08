@@ -4,6 +4,7 @@ import { StoreProvider, useStore } from './data/store'
 import { PRESETS, type PresetPeriodo, today, addDays } from './lib/dates'
 import { date, MESES_LONGOS } from './lib/format'
 import { quedasPrevistas } from './lib/metrics'
+import { chaveUnidade, filtroAtivo, regioes, unidades } from './lib/filtros'
 
 const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
 const hojeExtenso = () => {
@@ -124,7 +125,35 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       <button className="btn ghost" onClick={() => setTheme(isDark ? 'light' : 'dark')} aria-label="Alternar tema">
         {isDark ? <I.IcSun /> : <I.IcMoon />}
       </button>
+      <FiltrosGlobais />
     </header>
+  )
+}
+
+/** Filtro que vale para todas as abas: vendedora, unidade e região. */
+function FiltrosGlobais() {
+  const { dbArea, filtros, setFiltros } = useStore()
+  const equipe = dbArea.colaboradores
+    .filter((c) => c.cargo !== 'analista' && (!filtros.unidade || chaveUnidade(c.regiao || '') === filtros.unidade))
+    .sort((a, b) => a.nome.localeCompare(b.nome))
+  const ativo = filtroAtivo(filtros)
+  return (
+    <div className={`filtros-bar ${ativo ? 'ativo' : ''}`}>
+      <span className="rotulo">Filtrar</span>
+      <select className="input" value={filtros.vendedora || ''} onChange={(e) => setFiltros({ ...filtros, vendedora: e.target.value || undefined })} aria-label="Vendedora">
+        <option value="">Toda a equipe</option>
+        {equipe.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+      </select>
+      <select className="input" value={filtros.unidade || ''} onChange={(e) => setFiltros({ ...filtros, unidade: e.target.value || undefined, vendedora: undefined })} aria-label="Unidade">
+        <option value="">Todas as unidades</option>
+        {unidades(dbArea).map((u) => <option key={u.valor} value={u.valor}>{u.label}</option>)}
+      </select>
+      <select className="input" value={filtros.regiao || ''} onChange={(e) => setFiltros({ ...filtros, regiao: e.target.value || undefined })} aria-label="Região">
+        <option value="">Todas as regiões</option>
+        {regioes(dbArea).map((r) => <option key={r} value={r}>{r}</option>)}
+      </select>
+      {ativo && <button className="btn sm ghost" onClick={() => setFiltros({})}>Limpar filtros</button>}
+    </div>
   )
 }
 

@@ -12,6 +12,7 @@ import { exportCSV } from '../lib/csv'
 import { IcDownload, IcPlus } from '../components/Icons'
 import { RaioCapital } from '../components/RaioCapital'
 import { useFoco } from '../lib/router'
+import { equipeFiltrada, filtroAtivo, noLocal, passaCliente } from '../lib/filtros'
 import { km } from '../lib/format'
 import { lerLocalizacao, raiosCapital, verificarPonto } from '../lib/raio'
 import { ehCapitalSP } from '../data/labels'
@@ -22,7 +23,7 @@ const COR: Record<StatusTerritorio, string> = {
 }
 
 export default function Expansao() {
-  const { db, upsert, remove } = useStore()
+  const { db, dbArea, filtros, upsert, remove } = useStore()
   const [filtro, setFiltro] = useState<'todas' | StatusTerritorio>('todas')
   const [cidade, setCidade] = useState<LinhaTerritorio | null>(null)
   const [bloq, setBloq] = useState<TerritorioBloqueio | null>(null)
@@ -31,9 +32,18 @@ export default function Expansao() {
   const [todasVencidas, setTodasVencidas] = useState(false)
   const hoje = today()
 
-  const linhas = useMemo(() => territorios(db), [db])
+  const chave = (c: string, uf: string) => `${c.trim().toLowerCase()}|${uf}`
+  // ocupação e quedas usam todas as revendas da área: o filtro só escolhe o que aparece
+  const equipeF = useMemo(() => equipeFiltrada(dbArea, filtros), [dbArea, filtros])
+  const todasLinhas = useMemo(() => territorios(dbArea), [dbArea])
+  const linhas = useMemo(() => {
+    if (!filtroAtivo(filtros)) return todasLinhas
+    const cidadesComLead = new Set(db.leads.map((l) => chave(l.cidade, l.uf)))
+    return todasLinhas.filter((l) => noLocal(filtros.regiao || '', l.cidade, l.uf, l.regiao) &&
+      (!equipeF || l.revendas.some((c) => equipeF.has(c.responsavelId)) || cidadesComLead.has(l.chave)))
+  }, [todasLinhas, filtros, equipeF, db.leads])
   const { ids: foco } = useFoco()
-  const todas = useMemo(() => quedasPrevistas(db), [db])
+  const todas = useMemo(() => quedasPrevistas(dbArea).filter((q) => passaCliente(q.cliente, filtros, equipeF)), [dbArea, filtros, equipeF])
   const quedas = foco ? todas.filter((q) => foco.has(q.cliente.id)) : todas
   const proximas = quedas.filter((q) => q.data >= hoje)
   // prazo vencido: mais antigas primeiro, que são as decisões mais atrasadas
@@ -41,9 +51,8 @@ export default function Expansao() {
   const previstaDe = new Map(todas.map((q) => [q.cliente.id, q]))
   const recemLiberadas = db.clientes.filter((c) => c.status === 'encerrada' && c.quedaData && c.quedaData >= addDays(hoje, -60))
   const leadsAbertos = db.leads.filter((l) => !['ganho', 'perdido'].includes(l.etapa))
-  const chave = (c: string, uf: string) => `${c.trim().toLowerCase()}|${uf}`
   const statusDe = new Map(linhas.map((l) => [l.chave, l]))
-  const raios = useMemo(() => raiosCapital(db), [db])
+  const raios = useMemo(() => raiosCapital(dbArea), [dbArea])
   // Na capital a decisão é pelo raio em volta do endereço do lead, não pela cidade
   const situacao = (l: Lead): { pronto: boolean; label: string; tone: 'good' | 'warn' | 'bad' | 'info' | undefined } => {
     if (ehCapitalSP(l.cidade, l.uf)) {
